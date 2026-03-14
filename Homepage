@@ -1,0 +1,270 @@
+@Entry
+@Component
+struct Homepage {
+  // 快速面试：当前阶段使用本地假数据
+  private joblist: string[] = ["前端工程师", "后端工程师", "前端工程师", "前端工程师"]
+
+  // 上次测评：当前阶段使用本地假数据
+  private lastJob: string = "前端工程师"
+  private lastCompany: string = "拼多多"
+  private lastRound: string = "第2轮"
+  private lastInterviewType: string = "常规面"
+  private lastDate: string = "2天前"
+  private lastTime: string = "20:32"
+  private lastScore: string = "56"
+
+  @Builder
+  Jobbuilder(job: string) {
+    Column() {
+      Text(job)
+        .fontColor("#000000")
+        .fontSize(14)
+        .fontWeight(FontWeight.Medium)
+        .margin({
+          top: 10,
+          left: 10,
+          right: 10,
+          bottom: 86
+        })
+      Button("开始测试")
+        .width(117)
+        .height(30)
+        .fontColor("#000000")
+        .fontSize(12)
+        .fontWeight(FontWeight.Medium)
+        .padding({
+          top: 8,
+          bottom: 8,
+          left: 35,
+          right: 34
+        })
+        .border({ radius: 15 })
+        .backgroundColor("#FFCC00")
+        .margin({ left: 5, right: 5, bottom: 5 })
+    }
+    .alignItems(HorizontalAlign.Start)
+    .width(127)
+    .height(150)
+    .border({ radius: 20 })
+    .backgroundColor("#E5E5E5")
+  }
+
+  @Builder
+  AbilityItem(title: string, score: number, maxScore: number = 10) {
+    Column() {
+      Row() {
+        Text(title)
+          .fontColor("#FFFFFF")
+          .fontSize(14)
+        Text(score.toFixed(1))
+          .fontColor("#FFFFFF")
+          .fontSize(18)
+      }
+      .width('100%')
+      .justifyContent(FlexAlign.SpaceBetween)
+      .margin({ bottom: 4 })
+
+      Progress({ value: score, total: maxScore, type: ProgressType.Linear })
+        .width('100%')
+        .color("#4285F4")
+        .backgroundColor("#333333")
+        .style({ strokeWidth: 6 })
+    }
+    .width('100%')
+    .padding({ left: 16, right: 16 })
+  }
+
+  build() {
+    Column() {
+      // 顶部面试官
+      Row() {
+        Image($r("app.media.01"))
+          .margin({ left: 16, top: 6, bottom: 7 })
+          .width(22)
+          .height(37)
+
+        Column() {
+          Text("面试官会员 模拟面试")
+            .fontColor("#000000")
+            .margin({ bottom: 4 })
+            .fontSize(14)
+            .fontWeight(FontWeight.Medium)
+          Text("获取每月30次免费模拟面试机会。")
+            .fontSize(10)
+            .fontWeight(FontWeight.Lighter)
+        }
+        .alignItems(HorizontalAlign.Start)
+        .width(152)
+        .height(32)
+        .margin({ left: 7, top: 8.5, bottom: 9.5, right: 91 })
+
+        Row() {
+          Image($r("app.media.02"))
+            .width(7.22)
+            .height(13.06)
+            .fillColor("#000000")
+        }
+        .backgroundColor("#66FFFFFF")
+        .justifyContent(FlexAlign.Center)
+        .alignItems(VerticalAlign.Center)
+        .padding({ bottom: 8.47, top: 8.47, left: 11.39, right: 11.39 })
+        .height(30)
+        .width(30)
+        .border({ radius: 145 })
+        .margin({ right: 10, top: 9.5, bottom: 10.5 })
+      }
+      .width(328)
+      .backgroundColor("#FFCC00")
+      .height(50)
+      .margin({ right: 16, left: 16, bottom: 22 })
+      .border({ radius: 25 })
+
+      // 上次测评
+      Column() {
+        Text("上次测评")
+          .fontColor("#000000")
+          .fontSize(21)
+          .fontWeight(FontWeight.Medium)
+          .margin({ bottom: 8 })
+
+        Row() {
+          Column() {
+            Text(this.lastJob)
+              .fontSize(24)
+              .fontColor("#FFFFFF")
+              .fontWeight(FontWeight.Regular)
+              .margin({ bottom: 2 })
+
+            Row() {
+              Text(this.lastCompany)
+                .fontSize(10)
+                .fontColor("#FFFFFF")
+                .fontWeight(FontWeight.Regular)
+                .margin({ right: 8 })
+              Text(this.lastRound)
+                .fontColor("#FFFFFF")
+                .fontWeight(FontWeight.Regular)
+                .fontSize(10)
+                .margin({ right: 8 })
+              Text(this.lastInterviewType)
+                .fontSize(10)
+                .fontColor("#FFFFFF")
+                .fontWeight(FontWeight.Regular)
+            }
+            .width(106)
+            .height(12)
+            .margin({ bottom: 18 })
+
+            Row() {
+              Text("上次：")
+                .fontSize(10)
+                .fontColor("#FFFFFF")
+                .fontWeight(FontWeight.Regular)
+                .margin({ right: 2 })
+              Text(this.lastDate)
+                .fontColor("#FFFFFF")
+                .fontSize(10)
+                .fontWeight(FontWeight.Regular)
+                .margin({ right: 3 })
+              Text(this.lastTime)
+                .fontSize(10)
+                .fontColor("#FFFFFF")
+                .fontWeight(FontWeight.Regular)
+            }
+            .width(116)
+            .height(12)
+          }
+          .margin({ bottom: 10, top: 10, left: 10, right: 118 })
+          .width(120)
+          .height(72)
+          .alignItems(HorizontalAlign.Start)
+
+          Column() {
+            Row() {
+              Text(this.lastScore)
+                .fontSize(38)
+                .fontColor("#FFFFFF")
+                .fontWeight(FontWeight.Regular)
+                .margin({ right: 3 })
+              Text("分")
+                .fontSize(20)
+                .fontColor("#FFFFFF")
+                .fontWeight(FontWeight.Regular)
+                .padding({ top: 14 })
+            }
+            .margin({ bottom: 22 })
+            .width(70)
+            .height(32)
+
+            Button("查看完整报告")
+              .width(70)
+              .height(18)
+              .fontSize(10)
+              .fontWeight(FontWeight.Regular)
+              .border({ radius: 10 })
+              .padding({ left: 5, right: 5, top: 3, bottom: 3 })
+          }
+          .width(70)
+          .height(72)
+          .margin({ bottom: 10, top: 10, right: 10 })
+        }
+        .width(328)
+        .height(92)
+        .backgroundColor("#D40000")
+        .border({ radius: 20 })
+      }
+      .width(328)
+      .height(125)
+      .alignItems(HorizontalAlign.Start)
+      .margin({ bottom: 22 })
+
+      // 快速面试
+      Column() {
+        Text("快速面试")
+          .fontSize(18)
+          .fontWeight(FontWeight.Medium)
+          .fontColor("#000000")
+          .margin({ bottom: 8 })
+
+        List({ space: 10 }) {
+          ForEach(this.joblist, (item: string) => {
+            ListItem() {
+              this.Jobbuilder(item)
+            }
+          }, (item: string) => item)
+        }
+        .scrollBar(BarState.Off)
+        .listDirection(Axis.Horizontal)
+      }
+      .alignItems(HorizontalAlign.Start)
+      .width("100%")
+      .height(179)
+      .margin({ left: 38, bottom: 22 })
+
+      // 能力状态
+      Column() {
+        Text("能力状态")
+          .fontSize(18)
+          .fontWeight(FontWeight.Medium)
+          .fontColor("#000000")
+          .margin({ bottom: 8 })
+
+        Column({ space: 5 }) {
+          this.AbilityItem("技术", 8.0)
+          this.AbilityItem("技术", 4.0)
+          this.AbilityItem("技术", 3.0)
+          this.AbilityItem("技术", 9.0)
+        }
+        .width(330)
+        .height(170)
+        .border({ radius: 20 })
+        .backgroundColor("#2C2C2E")
+        .justifyContent(FlexAlign.Center)
+        .padding({ top: 5, bottom: 3 })
+      }
+      .alignItems(HorizontalAlign.Start)
+      .width(328)
+      .height(161)
+    }
+  }
+}
