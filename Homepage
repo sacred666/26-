@@ -14,39 +14,72 @@ export struct Homepage {
   private lastScore: string = "56"
 
   @Builder
-  Jobbuilder(job: string) {
+  Jobbuilder(job: string,score:number) {
     Column() {
       Text(job)
         .fontColor("#000000")
-        .fontSize(14)
+        .fontSize(20)
         .fontWeight(FontWeight.Medium)
         .margin({
-          top: 10,
-          left: 10,
-          right: 10,
-          bottom: 86
+          top: 12,
+          left: 12,
+          right: 12
         })
+      Row()
+      {
+Text("互联网/人工智能")
+  .fontColor("#4E99F5")
+  .fontSize(11)
+  .fontWeight(FontWeight.Regular)
+  .padding(4)
+      }
+      .border({radius:10})
+      .backgroundColor("#D2D9F8")
+.margin({left:12,bottom:22})
+      Row() {
+        Text("匹配度")
+          .fontSize(11)
+          .fontWeight(FontWeight.Regular)
+          .layoutWeight(1)
+        Text(`${score}%`)
+          .fontSize(17)
+          .fontWeight(FontWeight.Medium)
+          .fontColor('#000000')
+      }
+      .width(128)
+      .alignItems(VerticalAlign.Bottom) // 底部对齐，让两段文字的底边在一个水平线上
+      .margin({ bottom: 2 ,left:12,right:12}) // 文字和进度条之间的间距
+      //进度条区域
+      Progress({ value: score, total: 100, type: ProgressType.Linear })
+        .width(128)
+        .color('#4E99F5') // 进度条蓝色部分
+        .backgroundColor('#787878') // 进度条灰色底槽部分
+        .style({ strokeWidth:4 }) // 设置进度条粗细，实现图中较粗的视觉效果
+        .margin({bottom:6,left:12,right:12})
       Button("开始测试")
-        .width(117)
-        .height(30)
+        .width(128)
+        .height(24)
         .fontColor("#000000")
         .fontSize(12)
-        .fontWeight(FontWeight.Medium)
+        .fontWeight(FontWeight.Regular)
         .padding({
-          top: 8,
-          bottom: 8,
-          left: 35,
-          right: 34
+          top: 4,
+          bottom: 4,
+          left: 40,
+          right: 40
         })
         .border({ radius: 15 })
         .backgroundColor("#FFCC00")
-        .margin({ left: 5, right: 5, bottom: 5 })
+        .margin({ left: 12, right: 12, bottom: 12 })
     }
     .alignItems(HorizontalAlign.Start)
-    .width(127)
+    .width(152)
     .height(150)
     .border({ radius: 20 })
-    .backgroundColor("#E5E5E5")
+    .linearGradient({
+      direction: GradientDirection.Bottom,
+      colors: [['#E5E5E5', 0.0], ['#FFFFFF', 1.0]]
+    })
   }
 
   @Builder
@@ -55,10 +88,11 @@ export struct Homepage {
       Row() {
         Text(title)
           .fontColor("#FFFFFF")
-          .fontSize(14)
+          .fontSize(15)
+          .fontWeight(FontWeight.Regular)
         Text(score.toFixed(1))
           .fontColor("#FFFFFF")
-          .fontSize(18)
+          .fontSize(15)
       }
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
@@ -66,12 +100,12 @@ export struct Homepage {
 
       Progress({ value: score, total: maxScore, type: ProgressType.Linear })
         .width('100%')
-        .color("#4285F4")
-        .backgroundColor("#333333")
+        .color("#4E99F5")
+        .backgroundColor("#787878")
         .style({ strokeWidth: 6 })
     }
     .width('100%')
-    .padding({ left: 16, right: 16 })
+    .padding({ left: 12, right: 12 })
   }
 
   build() {
@@ -79,23 +113,22 @@ export struct Homepage {
       // 顶部面试官
       Row() {
         Image($r("app.media.01"))
-          .margin({ left: 16, top: 6, bottom: 7 })
-          .width(22)
-          .height(37)
+          .margin({ left: 12, top: 8, bottom: 8 })
+          .width(19.8)
+          .height(33)
 
         Column() {
           Text("面试官会员 模拟面试")
             .fontColor("#000000")
-            .margin({ bottom: 4 })
-            .fontSize(14)
+            .margin({ bottom: 2 })
+            .fontSize(15)
             .fontWeight(FontWeight.Medium)
           Text("获取每月30次免费模拟面试机会。")
-            .fontSize(10)
+            .fontSize(11)
             .fontWeight(FontWeight.Regular)
         }
         .alignItems(HorizontalAlign.Start)
-
-        .margin({ left: 7, top: 8.5, bottom: 9.5})
+        .margin({ left: 7, top: 8, bottom: 8})
         .layoutWeight(1)
         Row() {
           Image($r("app.media.02"))
@@ -111,7 +144,7 @@ export struct Homepage {
         .height(30)
         .width(30)
         .border({ radius: 145 })
-        .margin({ right: 10, top: 9.5, bottom: 10.5 })
+        .margin({ right: 8, top: 9.5, bottom: 9.5 })
 
       }
       .width("100%")
@@ -124,7 +157,7 @@ export struct Homepage {
       Column() {
         Text("上次测评")
           .fontColor("#000000")
-          .fontSize(21)
+          .fontSize(22)
           .fontWeight(FontWeight.Medium)
           .margin({ bottom: 8 })
 
@@ -175,7 +208,7 @@ export struct Homepage {
             .width(116)
             .height(12)
           }
-          .margin({ bottom: 10, top: 10, left: 10})
+          .margin({ bottom: 12, top: 12, left: 12})
           .layoutWeight(1)
           .alignItems(HorizontalAlign.Start)
 
@@ -192,6 +225,7 @@ export struct Homepage {
                 .fontWeight(FontWeight.Regular)
                 .padding({ top: 14 })
             }
+            .alignItems(VerticalAlign.Bottom) // 底部对齐，让两段文字的底边在一个水平线上
             .margin({ bottom: 22 })
             .width(70)
             .height(32)
@@ -206,15 +240,18 @@ export struct Homepage {
           }
           .width(70)
           .height(72)
-          .margin({ bottom: 10, top: 10, right: 10 })
+          .margin({ bottom: 12, top: 12, right: 12 })
         }
         .width("100%")
         .height(92)
-        .backgroundColor("#D40000")
+        .linearGradient({
+          direction: GradientDirection.Bottom,
+          colors: [['#FF0000', 0.0], ['#D40000', 1.0]]
+        })
         .border({ radius: 20 })
       }
       .width("100%")
-      .height(125)
+      .height(136)
       .alignItems(HorizontalAlign.Start)
       .margin({ bottom: 22 })
 
@@ -229,7 +266,7 @@ export struct Homepage {
         List({ space: 10 }) {
           ForEach(this.joblist, (item: string, index: number) => {
             ListItem() {
-              this.Jobbuilder(item)
+              this.Jobbuilder(item,60)
             }
           }, (item: string, index: number) => `${index}`)
         }
@@ -239,18 +276,18 @@ export struct Homepage {
       }
       .alignItems(HorizontalAlign.Start)
       .width("100%")
-      .height(179)
+      .height(186)
       .margin({ bottom: 22 })
 
       // 能力状态
       Column() {
         Text("能力状态")
-          .fontSize(18)
+          .fontSize(22)
           .fontWeight(FontWeight.Medium)
           .fontColor("#000000")
           .margin({ bottom: 8 })
 
-        Column({ space: 5 }) {
+        Column({ space: 4 }) {
           this.AbilityItem("技术", 8.0)
           this.AbilityItem("技术", 4.0)
           this.AbilityItem("技术", 3.0)
@@ -265,7 +302,7 @@ export struct Homepage {
       }
       .alignItems(HorizontalAlign.Start)
       .width("100%")
-      .height(161)
+      .height(184)
     }
     .width("100%")
     .height("100%")
