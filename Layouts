@@ -1,0 +1,28 @@
+import { Homepage } from './Homepage'
+
+@Entry
+@Component
+struct Layouts {
+  @State currentIndex: number = 0
+
+  build() {
+    Tabs({ barPosition: BarPosition.End, index: this.currentIndex }) {
+      TabContent() {
+Homepage()
+      }.tabBar("首页")
+
+      TabContent() {
+        Text("岗位")
+      }.tabBar("岗位")
+
+      TabContent() {
+        Text("我的")
+      }.tabBar("我的")
+    }
+    .width('100%')
+    .height('100%')
+    .onChange((index: number) => {
+      this.currentIndex = index
+    })
+  }
+}
