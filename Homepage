@@ -1,3 +1,4 @@
+import { AppTheme } from "../constants/AppTheme"
 
 @Component
 export struct Homepage {
@@ -148,7 +149,7 @@ Text("互联网/人工智能")
 
       }
       .width("100%")
-      .backgroundColor("#FFCC00")
+      .backgroundColor(AppTheme.PrimaryYellow)
       .height(50)
       .margin({  bottom: 22 })
       .border({ radius: 25 })
