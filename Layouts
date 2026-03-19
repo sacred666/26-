@@ -1,8 +1,7 @@
 import { Homepage } from './Homepage'
 
-@Entry
 @Component
-struct Layouts {
+export struct Layouts {
   @State currentIndex: number = 0
 
   build() {
@@ -13,7 +12,7 @@ Homepage()
 
       TabContent() {
         Text("岗位")
-      }.tabBar("岗位")
+      }.tabBar("面试")
 
       TabContent() {
         Text("我的")
