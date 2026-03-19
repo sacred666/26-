@@ -1,0 +1,128 @@
+import { AppTheme } from '../constants/AppTheme'
+import { RouterModule } from '../utils/RouterModule'
+
+@Entry
+@Component
+export struct Page4 {
+  // 【核心机制】：记录当前选中的索引，-1 表示一个都没选
+  @State selectedIndex: number = -1;
+
+  // 将选项数据提取成数组，方便后面用 ForEach 循环渲染
+  private options: string[] = ['大一/大二', '大三/大四', '应届毕业生'];
+
+  build() {
+    Column() {
+      // --- 顶部标题区域 ---
+      Text("1. 你目前处于什么阶段？")
+        .fontSize(22)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(AppTheme.TextBlack)
+        .width('100%')
+        .textAlign(TextAlign.Start)
+        .margin({ top: 117, bottom: 20,left:-8 }) // 距离顶部的留白
+
+      // --- 选项列表区域 ---
+      Column({ space: 20 }) { // 选项之间的间距为 16
+        ForEach(this.options, (item: string, index: number) => {
+          // 单个选项框
+          Row() {
+            Text(item)
+              .fontSize(20)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(AppTheme.TextBlack)
+
+            Blank() // 弹簧：把文字和右边的圆圈推到两边
+
+            // 右侧的选中/未选中状态图标
+            if (this.selectedIndex === index) {
+              // 【选中状态】：黑底黄勾
+              Stack() {
+                Circle({ width: 14, height: 14 })
+                  .fill(AppTheme.TextBlack)
+                // 这里用原生 Path 画一个黄色的对勾，你也可以换成 Image($r('app.media.你的黄勾图片'))
+                  Image($r("app.media.yellowjiantou"))
+                    .width(9.62)
+                    .height(6.37)
+                    .objectFit(ImageFit.Contain)
+              }.width(14).height(14)
+            } else {
+              // 【未选中状态】：灰色空心圆
+              Circle({ width: 14, height: 14 })
+                .fill(Color.Transparent)
+                .stroke('#B2B2B2')
+                .strokeWidth(2)
+            }
+          }
+          .width('100%')
+          .height(58)
+          .padding({ left: 24, right: 22 })
+          .borderRadius(16)
+          // 【动态样式】：根据是否选中，改变背景色和边框颜色
+          .backgroundColor(this.selectedIndex === index ? '#FFEC8F' : "#FFFFFF")
+          .border({
+            width: 2,
+            radius:20,
+            color: this.selectedIndex === index ? AppTheme.PrimaryYellow : '#E0E0E0' // 未选中时用浅灰色边框
+          })
+          // 【点击事件】：更新选中的索引
+          .onClick(() => {
+            this.selectedIndex = index;
+          })
+        })
+      }
+      .width('100%')
+
+      Blank() // 撑开中间的空间，把底部按钮压在最下面
+
+      // --- 底部操作区域 ---
+      Column() {
+        // 圆形箭头按钮
+        Button({ type: ButtonType.Circle }) {
+          // 根据状态切换内部箭头的图片
+          // 注意：你需要准备一张白色的箭头(未选中用)和一张黑色的箭头(选中用)
+          Image(this.selectedIndex !== -1 ? $r("app.media.right") : $r("app.media.right_white"))
+            .width(30)
+            .height(30)
+            .objectFit(ImageFit.Contain)
+        }
+        .width(49)
+        .height(49)
+        // 【动态样式】：根据是否选中，改变按钮的背景色和阴影
+        .backgroundColor(this.selectedIndex !== -1 ? AppTheme.PrimaryYellow : '#C0C0C0')
+        .shadow(this.selectedIndex !== -1 ? { radius: 16, color: 'rgba(0, 0, 0, 0.1)', offsetY: 4 } : { radius: 0 })
+        .onClick(() => {
+          // 只有在选了选项的情况下，才允许跳转到下一题
+          if (this.selectedIndex !== -1) {
+            RouterModule.push('Page5')
+          }
+        })
+        .margin({ bottom: 22 })
+
+        // 跳过按钮 (如果需要的话，和Page3一致)
+        Text("跳过")
+          .fontSize(14)
+          .fontColor(AppTheme.TextBlue)
+          .padding(8)
+          .onClick(() => {
+            RouterModule.push('Page5')
+          })
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Center)
+      .margin({ bottom: 30 })
+    }
+    .width('100%')
+    .height('100%')
+    .padding({ left: 30, right: 30 })
+    // 完全复用 Page3 的背景渐变效果
+    .linearGradient({
+      direction: GradientDirection.Bottom,
+      colors: [
+        [AppTheme.PrimaryYellow, 0.0],
+        ['#FFFFFF', 0.6],
+        ['#FFFFFF', 1.0]
+      ]
+    })
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+  }
+}
