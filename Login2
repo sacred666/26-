@@ -1,0 +1,182 @@
+import { AppTheme } from '../constants/AppTheme'
+import { RouterModule } from '../utils/RouterModule'
+
+@Entry
+@Component
+export struct Login2 {
+  // 【核心1】：去公共仓库里拿名为 'userPhone' 的数据。
+  // 用 @StorageLink 的好处是，如果在这个页面修改了号码，仓库里的号码也会同步更新！
+  @StorageLink('userPhone') phoneNumber: string = '';
+
+  // 【核心2】：记录协议有没有被勾选
+  @State isAgreed: boolean = false;
+
+  build() {
+    Column() {
+      // 1. 顶部 Logo 区域
+      Row() {
+        Image($r("app.media.adsvg"))
+          .width(23)
+          .height(36)
+          .objectFit(ImageFit.Contain)
+      }
+      .backgroundColor(AppTheme.PrimaryYellow)
+      .border({ radius: 12 })
+      .width(54)
+      .height(54)
+      .justifyContent(FlexAlign.Center)
+      .margin({ top: 52, bottom: 21 })
+
+      // 2. 主标题
+      Text("开启你的面试官之旅")
+        .fontSize(20)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(AppTheme.TextBlack)
+        .margin({ bottom: 24 })
+
+      // 3. 表单区域
+      Column() {
+        Text("移动电话")
+          .width('100%')
+          .textAlign(TextAlign.Start)
+          .fontSize(14)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(AppTheme.TextBlack)
+          .margin({ bottom: 9 })
+
+        Row({ space: 8 }) {
+          Image($r("app.media.Group2"))
+            .width(90)
+            .height(44)
+            .borderRadius(8)
+            .objectFit(ImageFit.Fill)
+            .backgroundColor(AppTheme.BgGray)
+
+          Row() {
+            Text("+86")
+              .fontSize(14)
+              .fontColor(AppTheme.TextBlack)
+              .fontWeight(FontWeight.Regular)
+              .margin({ left: 9, right: 10 })
+
+            // 【修改点】：不再写死号码，而是使用 this.phoneNumber
+            TextInput({ text: this.phoneNumber })
+              .layoutWeight(1)
+              .placeholderFont({ size: 14 })
+              .fontSize(14)
+              .height('100%')
+              .backgroundColor(Color.Transparent)
+              .padding({ left: 0 })
+              .fontColor(AppTheme.TextBlack)
+              .onChange((value: string) => {
+                this.phoneNumber = value; // 允许用户在第二步修改号码
+              })
+          }
+          .layoutWeight(1)
+          .height(44)
+          .backgroundColor(AppTheme.BgGray)
+          .borderRadius(8)
+        }
+        .width('100%')
+        .margin({ bottom: 12 })
+
+        // 密码输入框模块保持不变...
+        Row() {
+          Image($r("app.media.key"))
+            .width(13)
+            .height(17)
+            .margin({ left: 11, right: 12 })
+            .objectFit(ImageFit.Contain)
+
+          TextInput({ placeholder: '输入密码' })
+            .layoutWeight(1)
+            .height('100%')
+            .backgroundColor(Color.Transparent)
+            .padding({ left: 0 })
+            .placeholderColor('#404040')
+            .placeholderFont({ size: 14 })
+            .fontSize(14)
+            .fontColor(AppTheme.TextBlack)
+          // 提示：如果要保存密码，这里也要加 .onChange 和一个 @State 变量哦
+        }
+        .width('100%')
+        .height(44)
+        .backgroundColor(AppTheme.BgGray)
+        .borderRadius(8)
+        .margin({ bottom: 6 })
+
+        Row() {
+          Text("通过验证码登录")
+            .fontSize(10)
+            .fontColor('#0091FF')
+            .fontWeight(FontWeight.Medium)
+
+          Text("忘记密码")
+            .fontSize(10)
+            .fontColor(AppTheme.TextBlack)
+            .fontWeight(FontWeight.Regular)
+        }
+        .width('100%')
+        .justifyContent(FlexAlign.SpaceBetween)
+        .margin({ bottom: 9 })
+
+        // --- 下一步按钮 ---
+        Button("下一步")
+          .width('100%')
+          .height(48)
+          .backgroundColor(AppTheme.PrimaryYellow)
+          .fontColor(AppTheme.TextBlack)
+          .fontSize(14)
+          .border({radius:8})
+          .fontWeight(FontWeight.Medium)
+          // 【交互优化】：电话不能为空 且 协议必须打钩，否则按钮变暗
+          .opacity(this.phoneNumber.trim().length > 0 && this.isAgreed ? 1 : 0.5)
+          .onClick(() => {
+            // 【逻辑防线】：双重校验通过后，才允许进入主问卷流程
+            if (this.phoneNumber.trim().length > 0 && this.isAgreed) {
+              RouterModule.push('Page3')
+            }
+          })
+
+        // --- 底部用户协议单选框 ---
+        Row() {
+          Checkbox({ name: 'agreement', group: 'privacy' })
+            .width(14)
+            .height(14)
+            .selectedColor('#4E99F5')
+            .margin({ right: 4 })
+            .shape(CheckBoxShape.ROUNDED_SQUARE)
+            // 【新增事件】：监听打钩状态，实时更新给 isAgreed 变量
+            .onChange((value: boolean) => {
+              this.isAgreed = value;
+            })
+
+          Text() {
+            Span("我同意")
+              .fontColor('#333333')
+            Span("用户使用协议")
+              .fontColor('#4E99F5')
+            Span("和")
+              .fontColor('#333333')
+            Span("隐私政策")
+              .fontColor('#4E99F5')
+          }
+          .fontSize(12)
+          .layoutWeight(1)
+        }
+        .width('100%')
+        .margin({ top: 12 })
+        .alignItems(VerticalAlign.Center)
+
+      }
+      .width('100%')
+      .padding({ left: 14, right: 14 })
+
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor(Color.White)
+    .alignItems(HorizontalAlign.Center)
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+  }
+}
