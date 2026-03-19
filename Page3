@@ -1,0 +1,97 @@
+import { AppTheme } from '../constants/AppTheme'
+import { RouterModule } from '../utils/RouterModule'
+
+@Entry
+@Component
+export struct Page3 {
+  build() {
+    Column() {
+      // --- 顶部文字区域 ---
+      Column() {
+        Text("欢迎来到 面试官！")
+          .fontSize(22)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(AppTheme.TextBlack)
+          .width('100%')
+          .textAlign(TextAlign.Start) // 强制左对齐
+          .margin({ bottom: 8 })
+
+        Text("距离你的心动offer更进一步。")
+          .fontSize(22)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(AppTheme.TextBlack)
+          .width('100%')
+          .textAlign(TextAlign.Start)
+          .margin({ bottom: 8 })
+
+        Text("下面，我们会问你几个问题，")
+          .fontSize(12)
+          .fontColor('#333333') // 次级文字使用深灰色
+          .width('100%')
+          .textAlign(TextAlign.Start)
+          .margin({ bottom: 4 })
+          .fontWeight(FontWeight.Regular)
+
+        Text("以更好的为你准备面试。")
+          .fontSize(12)
+          .fontColor('#333333')
+          .width('100%')
+          .fontWeight(FontWeight.Regular)
+          .textAlign(TextAlign.Start)
+      }
+      .width('100%')
+      .margin({ top: 103 }) // 距离顶部的留白，可根据视觉感受微调
+
+      // --- 弹性空间 ---
+      // 这里的 Blank 相当于一个弹簧，会自动把上面的文字顶在上面，下面的按钮压在下面
+      Blank()
+
+      // --- 底部操作区域 ---
+      Column() {
+        // 圆形箭头按钮
+        Button({ type: ButtonType.Circle }) {
+          // 【注意】：请将 'app.media.arrow_right' 替换为你切图里的向右箭头图片名
+          Image($r("app.media.right"))
+            .width(30)
+            .height(30)
+            .objectFit(ImageFit.Contain)
+        }
+        .width(49)
+        .height(49)
+        .backgroundColor(AppTheme.PrimaryYellow)
+        // 增加轻微的底部阴影，完美还原设计图里的质感
+        .shadow({ radius: 16, color: 'rgba(0, 0, 0, 0.1)', offsetY: 4 })
+        .onClick(() => {
+          RouterModule.push('Page4') // 跳转到下一题
+        })
+        .margin({ bottom: 22 })
+
+        // 跳过按钮
+        Text("跳过")
+          .fontSize(10)
+          .fontWeight(FontWeight.Regular)
+          .fontColor("#0091FF") // 复用了你之前定义的蓝色标签颜色
+          .padding(8) // 增加隐形的点击热区，方便用户手指点击
+          .onClick(() => {
+            RouterModule.push('Page4') // 跳过也是进下一页，具体逻辑看你们的需求
+          })
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Center) // 底部组件水平居中对齐
+      .margin({ bottom:30 }) // 距离底部的安全距离
+    }
+    .width('100%')
+    .height('100%')
+    .padding({ left: 22, right: 22 })
+    // 【核心亮点】：使用线性渐变背景，替代纯色 backgroundColor
+    .linearGradient({
+      direction: GradientDirection.Bottom, // 渐变方向：从上往下
+      colors: [
+        [AppTheme.PrimaryYellow, 0.0], // 0% 位置是纯黄色
+        ['#FFFFFF', 0.6],              // 延伸到大约 60% 的位置变成纯白色
+        ['#FFFFFF', 1.0]               // 剩余到底部全是纯白
+      ]
+    })
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+  }
+}
