@@ -1,0 +1,30 @@
+// src/main/ets/utils/RouterModule.ets
+
+export class RouterModule {
+  // 1. 创建全局唯一的路由栈实例
+  static navPathStack: NavPathStack = new NavPathStack();
+
+  // 2. 封装常用的跳转方法
+
+  // 普通跳转（压栈）：保留当前页，可返回
+  static push(name: string, param?: Object) {
+    //  ArkTS 中，静态方法内必须使用类名调用静态属性，不能用 this
+    RouterModule.navPathStack.pushPathByName(name, param);
+  }
+
+  // 替换当前页：销毁当前页，替换为新页面，不可返回当前页
+  static replace(name: string, param?: Object) {
+    RouterModule.navPathStack.replacePathByName(name, param);
+  }
+
+  // 清空历史并跳转：适用于注册完成进入主页，或退出登录
+  static clearAndPush(name: string, param?: Object) {
+    RouterModule.navPathStack.clear();
+    RouterModule.navPathStack.pushPathByName(name, param);
+  }
+
+  // 返回上一页
+  static pop() {
+    RouterModule.navPathStack.pop();
+  }
+}
