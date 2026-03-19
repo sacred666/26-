@@ -1,0 +1,18 @@
+// src/main/ets/constants/AppTheme.ets
+
+export class AppTheme {
+  // 核心主题色
+  static readonly PrimaryYellow: string = '#FFCC00'; // 你要求的黄色
+
+  // 常用背景色
+  static readonly BgGray: string = '#E6E6E6';        // 浅灰背景色/进度条底槽
+  static readonly BgLightBlue: string = '#D2D9F8';   // 标签浅蓝背景色
+
+  // 常用文本颜色
+  static readonly TextBlack: string = '#000000';     // 纯黑字体
+  static readonly TextDarkGray: string = '#1A1A1A';  // 深灰偏黑字体
+  static readonly TextBlue: string = '#4E99F5';      // 标签蓝色字体
+
+  // 组件高亮色
+  static readonly ProgressBlue: string = '#4C88FF';  // 进度条高亮蓝色
+}
