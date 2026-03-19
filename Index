@@ -1,0 +1,82 @@
+import { RouterModule } from '../utils/RouterModule'
+// 引入你的各个组件（确保路径正确）
+import { Ad } from './Ad'
+import { Login1 } from './Login1'
+import { Login2 } from './Login2'
+import { Page3 } from './Page3'
+import { Page4 } from './Page4'
+import { Page5 } from './Page5'
+import { Page6 } from './Page6'
+import { Page7 } from './Page7'
+import { Page8 } from './Page8'
+
+import { Layouts } from './Layouts'
+
+@Entry
+@Component
+struct Index {
+  // App启动时，立刻把广告页推入栈中显示
+  aboutToAppear() {
+    RouterModule.push('Ad');
+  }
+
+  // 核心：全局路由分发地图
+  @Builder
+  PageMap(name: string) {
+    if (name === 'Ad') {
+      // 注意：必须用 NavDestination 包裹你的组件
+      NavDestination() {
+        Ad()
+      }.hideTitleBar(true)
+    } else if (name === 'Login1') {
+      NavDestination() {
+        Login1()
+      }.hideTitleBar(true)
+    } else if (name === 'Login2') {
+      NavDestination() {
+        Login2()
+      }.hideTitleBar(true)
+    } else if (name === 'Page3') {
+      NavDestination() {
+        Page3()
+      }.hideTitleBar(true)
+    } else if (name === 'Page4') {
+      NavDestination() {
+        Page4()
+      }.hideTitleBar(true)
+    } else if (name === 'Page5') {
+      NavDestination() {
+        Page5()
+      }.hideTitleBar(true)
+    } else if (name === 'Page6') {
+      NavDestination() {
+        Page6()
+      }.hideTitleBar(true)
+    } else if (name === 'Page7') {
+      NavDestination() {
+        Page7()
+      }.hideTitleBar(true)
+    } else if (name === 'Page8') {
+      NavDestination() {
+        Page8()
+      }.hideTitleBar(true)
+    }  else if (name === 'Layouts') {
+      NavDestination() {
+        Layouts()
+      }.hideTitleBar(true)
+    }
+  }
+
+  build() {
+    // 将全局的 navPathStack 绑定到 Navigation 容器上
+    Navigation(RouterModule.navPathStack) {
+      // 容器主体留空，完全由路由栈接管显示逻辑
+    }
+    .hideTitleBar(true)  // 隐藏顶部默认标题栏
+    .hideNavBar(true)    // 隐藏底部默认导航栏
+    .navDestination(this.PageMap) // 绑定路由地图
+    .mode(NavigationMode.Stack)   // 强制使用堆叠模式
+    .width('100%')
+    .height('100%')
+  }
+}
