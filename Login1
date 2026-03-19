@@ -1,0 +1,169 @@
+import { AppTheme } from '../constants/AppTheme'
+import { RouterModule } from '../utils/RouterModule'
+
+@Entry
+@Component
+export struct Login1 {
+
+  // 【新增】：用于记录当前输入的电话号码
+  @State phoneNumber: string = '';
+
+  @Builder
+  OrDivider() {
+    Row() {
+      Divider().layoutWeight(1).color('#E0E0E0')
+      Text("或")
+        .fontColor('#B2B2B2')
+        .fontSize(8)
+        .fontWeight(FontWeight.Medium)
+        .margin({ left: 8, right: 8 })
+      Divider().layoutWeight(1).color('#B2B2B2')
+    }
+    .width('100%')
+    .margin({ top: 20, bottom: 25 })
+  }
+
+  build() {
+    Column() {
+      // 1. 顶部 Logo 区域
+      Row() {
+        Image($r("app.media.adsvg"))
+          .width(23)
+          .height(36)
+          .objectFit(ImageFit.Contain)
+      }
+      .backgroundColor(AppTheme.PrimaryYellow)
+      .border({ radius: 12 })
+      .width(54)
+      .height(54)
+      .justifyContent(FlexAlign.Center)
+      .margin({ top: 52, bottom: 21 })
+
+      // 2. 主标题
+      Text("开启你的面试官之旅")
+        .fontSize(20)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(AppTheme.TextBlack)
+        .margin({ bottom: 24 })
+
+      // 3. 表单区域
+      Column() {
+        Text("移动电话")
+          .width('100%')
+          .textAlign(TextAlign.Start)
+          .fontSize(14)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(AppTheme.TextBlack)
+          .margin({ bottom: 9 })
+
+        Row({ space: 8 }) {
+          Image($r("app.media.Group2"))
+            .width(90)
+            .height(44)
+            .borderRadius(8)
+            .objectFit(ImageFit.Fill)
+            .backgroundColor(AppTheme.BgGray)
+
+          Row() {
+            Text("+86")
+              .fontSize(14)
+              .fontColor(AppTheme.TextBlack)
+              .fontWeight(FontWeight.Regular)
+              .margin({ left: 9, right: 10 })
+
+            // 【修改点】：绑定 text 属性，并监听 onChange 事件
+            TextInput({ placeholder: '输入你的电话号码', text: this.phoneNumber })
+              .layoutWeight(1)
+              .placeholderFont({ size: 14 })
+              .fontSize(14)
+              .height('100%')
+              .backgroundColor(Color.Transparent)
+              .padding({ left: 0 })
+              .placeholderColor('#999999')
+              .onChange((value: string) => {
+                this.phoneNumber = value; // 实时把输入框的值存入变量
+              })
+          }
+          .layoutWeight(1)
+          .height(44)
+          .backgroundColor(AppTheme.BgGray)
+          .borderRadius(8)
+        }
+        .width('100%')
+        .margin({ bottom: 12 })
+
+        // --- 按钮模块 ---
+
+        // 下一步按钮
+        Button("下一步")
+          .width('100%')
+          .height(48)
+          .backgroundColor(AppTheme.PrimaryYellow)
+          .fontColor(AppTheme.TextBlack)
+          .fontSize(14)
+          .fontWeight(FontWeight.Medium)
+          .border({radius:8})
+          // 【交互优化】：如果没有输入内容，按钮半透明，提示不可点击
+          .opacity(this.phoneNumber.trim().length > 0 ? 1 : 0.5)
+          .onClick(() => {
+            // 【逻辑防线】：只有输入了内容才能执行后续操作
+            if (this.phoneNumber.trim().length > 0) {
+              // 核心：把电话号码存入全局公共仓库 (AppStorage)，起个名字叫 'userPhone'
+              AppStorage.setOrCreate('userPhone', this.phoneNumber);
+              RouterModule.push('Login2');
+            }
+          })
+
+        this.OrDivider()
+
+        // 邮箱登录等后面代码保持不变...
+        Row() {
+          Image($r("app.media.you"))
+            .width(20)
+            .height(17)
+            .margin({ right: 5 })
+            .objectFit(ImageFit.Contain)
+
+          Text("使用邮箱登录")
+            .fontColor(AppTheme.TextBlack)
+            .fontSize(14)
+            .fontWeight(FontWeight.Medium)
+        }
+        .width('100%')
+        .height(44)
+        .justifyContent(FlexAlign.Center)
+        .border({radius:8})
+        .backgroundColor(AppTheme.BgGray)
+
+        this.OrDivider()
+
+        Row() {
+          Image($r("app.media.search"))
+            .width(17)
+            .height(17)
+            .margin({ right: 5 })
+            .objectFit(ImageFit.Contain)
+
+          Text("查找我的账户")
+            .fontSize(14)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(AppTheme.TextBlack)
+            .margin({ top: 8 })
+        }
+        .width('100%')
+        .justifyContent(FlexAlign.Center)
+        .border({radius:8})
+        .alignItems(VerticalAlign.Bottom)
+
+      }
+      .width('100%')
+      .padding({left:14,right:14})
+
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor(Color.White)
+    .alignItems(HorizontalAlign.Center)
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+  }
+}
