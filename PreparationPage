@@ -1,0 +1,160 @@
+import { AppTheme } from '../constants/AppTheme'
+import { RouterModule } from '../utils/RouterModule'
+
+@Entry
+@Component
+export struct PreparationPage {
+  // --- 核心状态控制 ---
+  // step: 0(进度条阶段) -> 1(黑1个圈) -> 2(黑2个圈) -> 3(黑3个圈，文字变面试开始)
+  @State step: number = 0;
+  @State progressValue: number = 0; // 进度条的值 0-100
+
+  aboutToAppear() {
+    this.startLoadingProcess();
+  }
+
+  // --- 模拟加载与倒计时的流程控制 ---
+  startLoadingProcess() {
+    // 1. 进度条加载阶段 (2秒内从0涨到100)
+    let progressInterval = setInterval(() => {
+      this.progressValue += 5;
+      if (this.progressValue >= 100) {
+        clearInterval(progressInterval);
+
+        // 进度条满后，立刻进入倒计时阶段，显示“准备入场”，第1个圈变黑
+        this.step = 1;
+        this.startDotCountdown();
+      }
+    }, 100);
+  }
+
+  startDotCountdown() {
+    // 当前 step=1，显示“准备入场”，1黑2白
+
+    // 等待1秒后，第 2 个圈变黑 (1s后)
+    setTimeout(() => {
+      this.step = 2; // 显示“准备入场”，2黑1白
+
+      // 再等待1秒后，第 3 个圈变黑
+      setTimeout(() => {
+        // 【逻辑调整】：3圈全黑时，step变为3，UI根据 ternary 自动变为“面试开始！”
+        this.step = 3; // 显示“面试开始！”，3黑
+
+        // 在“面试开始！”状态停留 1 秒后，正式跳转到真实面试页
+        setTimeout(() => {
+          // 跳转逻辑
+          // RouterModule.push('RealInterviewPage') // 替换成你真实的面试页路由
+          // 跳转前可以弹个窗提示，方便调试观察
+          console.log('触发跳转到正式面试页面');
+        }, 1000);
+
+      }, 1000);
+    }, 1000);
+  }
+
+  build() {
+    Column() {
+      // --- 1. 顶部导航栏 (返回键 + 右侧摄像头预览占位) ---
+      Row() {
+        // 【修复】：左上角返回键看不见的问题
+        Column() {
+          Image($r("app.media.left"))
+            .width(12) // 增大尺寸
+            .height(24)
+            .fillColor(Color.Black) // 强制图标为黑色，确保在黄色背景上可见
+            .objectFit(ImageFit.Contain)
+        }
+        // 将点击事件和 Padding 加在容器上，增大点击区域
+        .padding({ left: 16, right: 16, top: 16, bottom: 16 })
+        .onClick(() => {
+          RouterModule.pop();
+        })
+
+        Blank()
+
+        // 【修改】：右上角摄像头预览框占位 (高仿 UI)
+        Stack({ alignContent: Alignment.Bottom }) {
+          // 使用黑色背景模拟模拟器/真机未开启时的摄像头占位
+          Rect()
+            .width('100%')
+            .height('100%')
+            .fill(Color.Black) // 摄像头画面占位背景
+
+          // 底部半透明文字提示
+          Text("请正对摄像头")
+            .fontSize(8)
+            .fontColor(Color.White)
+            .backgroundColor('rgba(0,0,0,0.6)')
+            .width('100%')
+            .textAlign(TextAlign.Center)
+            .padding({ top: 2, bottom: 4 })
+        }
+        .width(80)
+        .height(110)
+        .margin({ right: 16, top: 16 })
+        .borderRadius(8)
+        .clip(true)
+        .border({ width: 2, color: '#007DFF' }) // 蓝色描边
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Top)
+
+      Blank() // 将中间内容推到屏幕中央
+
+      // --- 2. 屏幕中央动态变化的内容 ---
+      Column() {
+        if (this.step === 0) {
+          // ====== 阶段 0：准备好，面试马上开始 + 进度条 ======
+          Text("准备好，面试马上开始。")
+            .fontSize(24)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(Color.Black)
+            .margin({ bottom: 144 })
+
+          // 自定义样式的进度条：已完成部分黑色，未完成部分白色
+          Progress({ value: this.progressValue, total: 100, type: ProgressType.Linear })
+            .width('70%')
+            .color(Color.Black)
+            .backgroundColor(Color.White)
+            .style({ strokeWidth: 4 })
+            .margin({ bottom: 19 })
+
+          // 下方攻略文字
+          Text("你知道吗？80%的面试问题其实都可以归类为三种：\n能力、动机、匹配度。")
+            .fontSize(12)
+            .fontColor('rgba(0,0,0,0.6)')
+            .textAlign(TextAlign.Center)
+            .lineHeight(18)
+
+        } else {
+          // ====== 阶段 1~3：准备入场 / 面试开始 + 圆圈 ======
+          // 【逻辑调整】：step 为 3 时（即3个圈都黑了）显示面试开始，否则显示准备入场
+          Text(this.step >= 3 ? "面试开始！" : "准备入场！")
+            .fontSize(24)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(Color.Black)
+            .margin({ bottom: 138 })
+
+          // 3个倒计时圆圈
+          Row({ space: 16 }) {
+            // 第一个圈：step >= 1 变黑，否则白
+            Circle({ width: 16, height: 16 }).fill(this.step >= 1 ? Color.Black : Color.White)
+            // 第二个圈：step >= 2 变黑，否则白
+            Circle({ width: 16, height: 16 }).fill(this.step >= 2 ? Color.Black : Color.White)
+            // 第三个圈：step >= 3 变黑，否则白
+            Circle({ width: 16, height: 16 }).fill(this.step >= 3 ? Color.Black : Color.White)
+          }
+        }
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Center)
+
+      Blank() // 配合上方的 Blank()，实现垂直居中
+      Blank() // 多加一个 Blank 把中心点略微向上提一点，符合视觉居中
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor(AppTheme.PrimaryYellow) // 背景大黄颜色
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+  }
+}
