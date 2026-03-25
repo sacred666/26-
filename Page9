@@ -1,0 +1,398 @@
+import { AppTheme } from '../constants/AppTheme'
+import { RouterModule } from '../utils/RouterModule'
+
+// 定义面试官风格的数据结构
+interface StyleItem {
+  icon: Resource | string;
+  title: string;
+  description: string;
+  index: number;
+}
+
+// 模拟面试官风格数据列表
+const stylesList: StyleItem[] = [
+  { icon: $r("app.media.Icon1"), title: "常规型", description: "面试客观。", index: 0 },
+  { icon: $r("app.media.Icon2"), title: "压力型", description: "可能会打断。", index: 1 },
+  { icon: $r("app.media.Icon3"), title: "随机", description: "随机性格。", index: 2 }
+];
+
+// --- 定义专项测试的数据结构 ---
+interface SpecialTestItem {
+  id: number;
+  score: string;
+  type: string;
+  desc: string;
+}
+
+// --- 模拟专项测试数据列表 ---
+const specialTestsList: SpecialTestItem[] = [
+  { id: 0, score: "", type: "无", desc: "" },
+  { id: 1, score: "63分", type: "基础能力", desc: "HTML, CSS,\nJavaScript" },
+  { id: 2, score: "60分", type: "框架能力", desc: "React, 封装,\n路由配置" },
+  { id: 3, score: "58分", type: "工程能力", desc: "Vite,\nWebpack" },
+  { id: 4, score: "72分", type: "架构能力", desc: "微前端,\n性能优化" }
+];
+
+@Entry
+@Component
+export struct Page9 {
+  // --- 页面状态变量 ---
+  // 【状态保持】：默认 false，关闭状态
+  @State isPressureTestOn: boolean = false;
+  @State selectedStyleIndex: number = 0;
+  @State isRealMode: boolean = true;
+  @State isLongDuration: boolean = true;
+
+  @State selectedSpecialTests: number[] = [1];
+
+  @Builder
+  ProTag() {
+    Text("PRO")
+      .fontSize(10)
+      .fontWeight(FontWeight.Medium)
+      .fontColor(AppTheme.TextBlack)
+      .backgroundColor(AppTheme.PrimaryYellow)
+      .padding({ left: 5, right: 3.5, top: 3, bottom: 3 })
+      .borderRadius(8)
+      .margin({ left: 6 })
+  }
+
+  @Builder
+  FormRow(icon: Resource, title: string, value: string, hasDivider: boolean = true) {
+    Column() {
+      Row() {
+        Image(icon).width(23).height(20).margin({ right: 10 })
+        Text(title).fontSize(16).fontWeight(FontWeight.Regular).fontColor(AppTheme.TextBlack)
+        Blank()
+        Text(value).fontSize(16).fontColor("#666666").margin({ right: 3 })
+        Image($r("app.media.111")).width(8).height(16)
+      }
+      .width('100%').height(50).alignItems(VerticalAlign.Center)
+      if (hasDivider) { Divider().color('#F2F2F2').width('100%') }
+    }
+  }
+
+  @Builder
+  InterviewerStyleCardBuilder(item: StyleItem) {
+    Stack() {
+      if (item.index !== this.selectedStyleIndex) {
+        Rect().width('100%').height('100%').fill('rgba(142, 142, 147, 0.1)')
+          .stroke('#8E8E93').strokeWidth(1.5).strokeDashArray([8, 6]).radius(12)
+      }
+      Column() {
+        if (typeof item.icon === 'string') {
+          Text(item.icon).fontSize(28).margin({ bottom: 8 })
+        } else {
+          Image(item.icon).width(30).height(30).margin({ bottom: 8 })
+        }
+        Blank()
+        Text(item.title).fontSize(17).fontWeight(FontWeight.Medium)
+          .fontColor(item.index === this.selectedStyleIndex ? Color.White : AppTheme.TextBlack).margin({ bottom: 3 })
+        Text(item.description).fontSize(13).fontWeight(FontWeight.Regular)
+          .fontColor(item.index === this.selectedStyleIndex ? Color.White : '#8E8E93')
+      }
+      .alignItems(HorizontalAlign.Start).width('100%').height('100%').padding({ left: 12, top: 7, bottom: 16 })
+      .backgroundColor(item.index === this.selectedStyleIndex ? '#007DFF' : Color.Transparent).borderRadius(12)
+    }
+    .layoutWeight(1).aspectRatio(1).onClick(() => { this.selectedStyleIndex = item.index; })
+  }
+
+  @Builder
+  SpecialTestCardBuilder(item: SpecialTestItem) {
+    Column() {
+      if (item.id === 0) {
+        Column() {
+          Image(this.selectedSpecialTests.includes(item.id) ? $r("app.media.Frame66") : $r("app.media.Frame67"))
+            .width(30)
+            .height(30)
+            .margin({ bottom: 8 })
+          Text("无")
+            .fontSize(12)
+            .fontWeight(FontWeight.Regular)
+            .fontColor(this.selectedSpecialTests.includes(item.id) ?"#B9B9B9" : '#8E8E93')
+        }
+        .width('100%')
+        .height('100%')
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
+      } else {
+        Column() {
+          Row() {
+            Text(item.score).fontSize(10).fontColor(Color.White).backgroundColor('#FF4D4F')
+              .padding({ left: 4, right: 4, top: 2, bottom: 2 }).borderRadius(4)
+            Blank()
+            if (this.selectedSpecialTests.includes(item.id)) {
+              Image($r("app.media.Group7")).width(14).height(14)
+            } else {
+              Circle({ width: 14, height: 14 }).fill(Color.Transparent).stroke('#007DFF').strokeWidth(1.5)
+            }
+          }.width('100%').padding({ top: 8, left: 8, right: 8, bottom: 8 })
+
+          Blank()
+          Text(item.type).fontSize(14).fontWeight(FontWeight.Bold).fontColor(AppTheme.TextBlack).margin({ bottom: 4 }).padding({ left: 8 })
+          Text(item.desc).fontSize(10).fontColor('#999999').textAlign(TextAlign.Start).width('100%').padding({ left: 8, bottom: 12 })
+        }
+        .width('100%')
+        .height('100%')
+        .alignItems(HorizontalAlign.Start)
+      }
+    }
+    .width(90)
+    .height(110)
+    .padding(0)
+    .backgroundColor(this.selectedSpecialTests.includes(item.id) ? Color.White : '#EEEEEE')
+    .border({
+      width: 1.5,
+      color: this.selectedSpecialTests.includes(item.id) ? (item.id === 0 ? '#CCCCCC' : '#007DFF') : (item.id === 0 ? '#CCCCCC' : '#FF4D4F'),
+      style: this.selectedSpecialTests.includes(item.id) ? BorderStyle.Solid : BorderStyle.Dashed,
+      radius: 12
+    })
+    .onClick(() => {
+      if (item.id === 0) {
+        this.selectedSpecialTests = [0];
+      } else {
+        if (this.selectedSpecialTests.includes(0)) { this.selectedSpecialTests = []; }
+        if (this.selectedSpecialTests.includes(item.id)) {
+          this.selectedSpecialTests = this.selectedSpecialTests.filter(id => id !== item.id);
+        } else {
+          this.selectedSpecialTests.push(item.id);
+        }
+        if (this.selectedSpecialTests.length === 0) { this.selectedSpecialTests = [0]; }
+      }
+    })
+  }
+
+  build() {
+    Column() {
+      Column() {
+        Stack({ alignContent: Alignment.Center }) {
+          Row() {
+            Image($r("app.media.005")).width(89).height(28)
+          }.border({ radius: 15 })
+
+          Row() {
+            Image($r("app.media.left"))
+              .width(12)
+              .height(24)
+              .onClick(() => {
+                RouterModule.pop()
+              })
+          }
+          .width('100%')
+          .height('100%')
+          .justifyContent(FlexAlign.Start)
+          .alignItems(VerticalAlign.Center)
+          .padding({ left: 16 })
+        }
+        .width('100%')
+        .height(44)
+      }
+
+      Scroll() {
+        Column() {
+          Row() { Text("开始面试").fontSize(22).fontWeight(FontWeight.Medium).fontColor(AppTheme.TextBlack) }.width('100%').margin({ bottom: 12 })
+
+          // --- 3. 个人简历卡片 ---
+          Column() {
+            Row() {
+              Column() {
+                Text("个人简历").fontSize(16).fontWeight(FontWeight.Medium).fontColor(AppTheme.TextBlack).margin({ bottom: 8 })
+                Text("林可欣简历01.pdf").fontSize(14).fontColor('#3482FF').maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+              }.padding({top:16,left:14,bottom:17}).alignItems(HorizontalAlign.Start).layoutWeight(1)
+
+              Row() { Text("📄").fontSize(24) }.padding({top:9,bottom:9}).width(37).height(48).backgroundColor('#F5F5F5').borderRadius(4).justifyContent(FlexAlign.Center).margin({ right: 8 })
+
+              Button("查看").margin({ top: 21, bottom: 21, right: 4 }).padding({ top: 6, bottom: 6, left: 10, right: 10 }).height(24).fontSize(10).fontColor(AppTheme.TextBlack).backgroundColor(AppTheme.PrimaryYellow)
+              Button("修改").margin({ top: 21, bottom: 21 }).padding({ top: 6, bottom: 6, left: 10, right: 10 }).height(24).fontSize(10).fontColor(AppTheme.TextBlack).backgroundColor(Color.White).border({ width: 1.5, color: AppTheme.PrimaryYellow })
+            }.width('100%').alignItems(VerticalAlign.Center).padding({ right: 12 })
+          }.width('100%').backgroundColor(Color.White).borderRadius(24).margin({ bottom: 8 })
+
+          // --- 4. 压力检测 (核心修改区域) ---
+          Column() {
+            Row() {
+              Text("题目压力水平检测").fontSize(16).fontWeight(FontWeight.Medium).fontColor(AppTheme.TextBlack)
+              this.ProTag()
+              Blank()
+              Toggle({ type: ToggleType.Switch, isOn: this.isPressureTestOn })
+                .selectedColor('#007DFF')
+                .onChange((isOn: boolean) => {
+                  // 【核心修改1】：加入 animateTo，让高度变化和展开过程平滑过渡
+                  animateTo({ duration: 300, curve: Curve.EaseInOut }, () => {
+                    this.isPressureTestOn = isOn;
+                  });
+                })
+            }.width('100%').margin({ bottom: 5 })
+
+            Text("面试官将通过智能穿戴设备实时采集面试过程中实时心率、心率变异性(HRV)、压力指数趋势等生理数据，分析心理压力变化趋势。")
+              .fontSize(9).fontColor('rgba(0,0,0,0.7)').lineHeight(10)
+
+            // 【核心修改2】：基于状态渲染手表连接组件，完美复刻 UI
+            if (this.isPressureTestOn) {
+              Row() {
+                Image($r("app.media.watch"))
+                  .width(26)
+                  .height(27)
+                  .objectFit(ImageFit.Contain)
+                  .margin({right:3})
+                Column() {
+                  Text("已连接")
+                    .fontSize(10)
+                    .fontColor('#484848')
+                    .margin({ bottom: 1 })
+                  Text("HUAWEI WATCH GT 4")
+                    .fontSize(14)
+                    .fontWeight(FontWeight.Medium)
+                    .fontColor('#0057E3')
+                }
+                .alignItems(HorizontalAlign.Start)
+
+                Blank()
+
+                Button("更改")
+                  .height(26)
+                  .padding({ left: 15, right: 14 })
+                  .fontSize(10)
+                  .fontColor('#0A59F7')
+                  .backgroundColor(Color.Transparent)
+                  .border({ width: 2, color: '#0A59F7', radius: 12 })
+              }
+              .width('100%')
+              .padding({ left: 8, right: 20, top: 12, bottom: 11 })
+              .margin({ top: 12 })
+              .backgroundColor('#E5F3FF') // 浅蓝色背景
+              .borderRadius(8)
+              .border({ width: 1, color: '#0088FF', style: BorderStyle.Dashed }) // 蓝色虚线边框
+            }
+
+          }
+          .alignItems(HorizontalAlign.Start)
+          .width('100%')
+          .backgroundColor(Color.White)
+          .borderRadius(24)
+          // 为了让折叠动画不超出圆角范围，可以加上 clip(true)
+          .clip(true)
+          .padding({top:16,bottom:11,left:14,right:12})
+          .margin({ bottom: 8 })
+
+          // --- 5. 基础表单卡片 ---
+          Column() {
+            this.FormRow($r("app.media.001"), "岗位", "前端工程师", true)
+            this.FormRow($r("app.media.002"), "公司", "其它", true)
+            this.FormRow($r("app.media.003"), "轮次", "第2轮", true)
+
+            Row() {
+              Image($r("app.media.004")).width(23).height(23).margin({ right: 10 })
+              Text("时长").fontSize(16).fontWeight(FontWeight.Medium).fontColor(AppTheme.TextBlack)
+              Blank()
+
+              Column() {
+                Stack() {
+                  Row().width(54).height(28).backgroundColor(this.isLongDuration ? '#0A59F7' : '#E5E5E5').borderRadius(14).border({ width: 1, color: this.isLongDuration ? '#0A59F7' : '#E5E5E5' })
+                  Row() {
+                    if (this.isLongDuration) {
+                      Text("短").fontSize(13).fontColor(Color.White).margin({ left: 8 }); Blank(); Circle({ width: 20, height: 20 }).fill(Color.White).margin({ right: 2 })
+                    } else {
+                      Circle({ width: 20, height: 20 }).fill(Color.White).stroke('#D1D1D1').strokeWidth(1).margin({ left: 2 }); Blank(); Text("长").fontSize(13).fontColor('#007DFF').margin({ right: 8 })
+                    }
+                  }.width(54).height(28).alignItems(VerticalAlign.Center)
+                }
+              }.border({ width: 3, color: '#0A59F7' }).borderRadius(16).padding(1).backgroundColor(Color.White).onClick(() => { this.isLongDuration = !this.isLongDuration; })
+            }.width('100%').height(50).alignItems(VerticalAlign.Center)
+
+            Text(this.isLongDuration ? "您已选择长时长。更长的时长会有更完整的面试体验。" : "您已选择短时长。短时长将帮您快速体验核心面试流程。")
+              .fontSize(10).fontWeight(FontWeight.Regular).fontColor('#000000').width('100%').margin({ top: -8 })
+          }.width('100%').backgroundColor(Color.White).borderRadius(16).padding({ left: 16, right: 16, top: 4, bottom: 16 }).margin({ bottom: 8 })
+
+          // --- 6. 面试官风格卡片 ---
+          Column() {
+            Row() {
+              Text("面试官风格").fontSize(20).fontWeight(FontWeight.Medium).fontColor(AppTheme.TextBlack)
+              Blank()
+              Image($r("app.media.Arrow")).width(11.5).height(18.5)
+            }.width('100%').margin({ bottom: 3 })
+            Text("不同的面试官风格对应着不同的面试体验。").fontSize(13).fontColor('#999999').width('100%').margin({ bottom: 8})
+
+            Row({ space: 8 }) {
+              ForEach(stylesList, (item: StyleItem) => {
+                this.InterviewerStyleCardBuilder(item)
+              }, (item: StyleItem) => item.index.toString())
+            }.width('100%').margin({ bottom: 8 })
+
+            Text("压力型面试可能会带来不悦的面试体验。").fontSize(13).fontColor('#999999').width('100%')
+          }.width('100%').backgroundColor(Color.White).borderRadius(16).padding(16).margin({ bottom: 12 })
+
+          // --- 7. 模式选择卡片 ---
+          Column() {
+            Text("模式选择").fontSize(20).fontWeight(FontWeight.Medium).fontColor(AppTheme.TextBlack).width('100%').margin({ bottom:3 })
+            Text("学习模式下，你可以额外获取提示或答案。").fontSize(13).fontColor('#999999').width('100%').margin({ bottom: 9})
+
+            Row() {
+              Text("实战模式").layoutWeight(1).height(36).textAlign(TextAlign.Center).fontSize(13).fontWeight(FontWeight.Medium).fontColor(this.isRealMode ? AppTheme.TextBlack : '#666666').backgroundColor(this.isRealMode ? AppTheme.PrimaryYellow : Color.Transparent).borderRadius(99).onClick(() => this.isRealMode = true)
+              Text("学习模式").layoutWeight(1).height(36).textAlign(TextAlign.Center).fontSize(13).fontWeight(FontWeight.Medium).fontColor(!this.isRealMode ? AppTheme.TextBlack : '#666666').backgroundColor(!this.isRealMode ? AppTheme.PrimaryYellow : Color.Transparent).borderRadius(99).onClick(() => this.isRealMode = false)
+            }.width('100%').backgroundColor('#F5F5F5').borderRadius(20).padding(2)
+          }.width('100%').backgroundColor(Color.White).borderRadius(16).padding(16).margin({ bottom: 12 })
+
+          // --- 8. 专项测试卡片 ---
+          Column() {
+            Row() {
+              Text("专项测试").fontSize(20).fontWeight(FontWeight.Medium).fontColor(AppTheme.TextBlack)
+              this.ProTag()
+            }.width('100%').margin({ bottom: 3 })
+            Text("专项测试会通过所选能力点进行针对性提问。").fontSize(13).fontColor('#999999').width('100%').margin({ bottom: 16 })
+
+            // 瀑布流展示
+            List({ space: 12 }) {
+              ForEach(specialTestsList, (item: SpecialTestItem) => {
+                ListItem() {
+                  this.SpecialTestCardBuilder(item)
+                }
+              }, (item: SpecialTestItem) => item.id.toString())
+            }
+            .listDirection(Axis.Horizontal)
+            .scrollBar(BarState.Off)
+            .width('100%')
+            .height(115)
+          }.width('100%').backgroundColor(Color.White).borderRadius(24).padding(16).margin({ bottom: 8 })
+
+          // --- 9. 神态检测卡片 ---
+          Column() {
+            Row() {
+              Text("神态检测").fontSize(16).fontWeight(FontWeight.Medium).fontColor(AppTheme.TextBlack)
+              this.ProTag()
+              Blank()
+              Toggle({ type: ToggleType.Switch, isOn: false }).selectedColor('#007DFF')
+            }.width('100%').margin({ bottom: 5 })
+
+            Text("神态管理是面试中最重要的一部分之一。\n打开神态检测需要调用相机进行拍摄。")
+              .fontSize(9).fontColor('rgba(0,0,0,0.7)').lineHeight(10)
+          }.alignItems(HorizontalAlign.Start).width('100%').backgroundColor(Color.White).borderRadius(24).padding({top:16,bottom:11,left:14,right:12}).margin({ bottom: 18 })
+
+          // --- 10. 底部巨大开始测试按钮 ---
+          Button("开始面试")
+            .width('100%')
+            .height(50)
+            .fontSize(20)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(AppTheme.TextBlack)
+            .backgroundColor(this.selectedSpecialTests.length > 0 ? AppTheme.PrimaryYellow : '#B2B2B2')
+            .borderRadius(999)
+            .onClick(() => {
+              if (this.selectedSpecialTests.length > 0) {
+                RouterModule.push('PreparationPage');
+              }
+            })
+            .margin({ bottom: 20 })
+        }
+        .width('100%')
+        .padding({ left: 16, right: 16 })
+      }
+      .layoutWeight(1)
+      .width("100%")
+      .scrollBar(BarState.Off)
+    }
+    .width("100%")
+    .height("100%")
+    .backgroundColor('#F7F8FA')
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+  }
+}
