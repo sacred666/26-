@@ -11,6 +11,8 @@ import { Page7 } from './Page7'
 import { Page8 } from './Page8'
 
 import { Layouts } from './Layouts'
+import { Page9 } from './Page9'
+import { PreparationPage } from './PreparationPage'
 
 @Entry
 @Component
@@ -60,7 +62,17 @@ struct Index {
       NavDestination() {
         Page8()
       }.hideTitleBar(true)
-    }  else if (name === 'Layouts') {
+    } else if (name === 'Page9') {
+      NavDestination() {
+        Page9()
+      }.hideTitleBar(true)
+    }
+    else if (name === 'PreparationPage') {
+      NavDestination() {
+        PreparationPage()
+      }.hideTitleBar(true)
+    }
+    else if (name === 'Layouts') {
       NavDestination() {
         Layouts()
       }.hideTitleBar(true)
