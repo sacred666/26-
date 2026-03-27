@@ -27,4 +27,12 @@ export class RouterModule {
   static pop() {
     RouterModule.navPathStack.pop();
   }
+  // 👇 新增：退回到栈内的指定页面（比如直接退回 Page9）
+  static popToName(name: string) {
+    RouterModule.navPathStack.popToName(name);
+  }
+  // 回到根页面（清空所有栈内的页面，露出底部的根组件）
+  static clear() {
+    RouterModule.navPathStack.clear();
+  }
 }
