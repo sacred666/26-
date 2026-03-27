@@ -1,0 +1,367 @@
+import { AppTheme } from '../constants/AppTheme'
+import { RouterModule } from '../utils/RouterModule'
+import router from '@ohos.router'
+
+@Entry
+@Component
+export struct AnswerPage {
+  // --- 状态控制 ---
+  @State countdown: number = 0;
+  @State isAnswerReady: boolean = true;
+
+  @State voiceImageIndex: number = 0;
+  private voiceImageResources: Resource[] = [
+    $r("app.media.v1"),
+    $r("app.media.v2"),
+    $r("app.media.v3"),
+    $r("app.media.v4"),
+    $r("app.media.v5"),
+    $r("app.media.v6")
+  ];
+
+  @State transcriptText: string = "这里是回答内容的实时语音转文字。这里是回答内容的实时语音转文字。这里是回答内容的实时语音转文字。这里是回答内容的实时语音转文字。这里是回答内容的实时语音转文字。这里是回答内容的实时语音转文字。这里是回答内容的实时语音转文字。";
+
+  private answerText: string = "这里是答案显示区。这里是答案显示区。这里是答案显示区域。这里是答案显示区。\n这里是答案显示区。这里是答案显示区域。这里是答案显示区。这里是答案显示区。\n这里是答案显示区域。这里是答案显示区。这里是答案显示区。这里是答案显示区域。\n这里是答案显示区。这里是答案显示区。这里是答案显示区域。这里是答案显示区。这里是答案显示区域。";
+
+  private voiceTimerId: number = -1;
+
+  aboutToAppear() {
+    this.voiceTimerId = setInterval(() => {
+      this.voiceImageIndex = (this.voiceImageIndex + 1) % this.voiceImageResources.length;
+    }, 150);
+  }
+
+  aboutToDisappear() {
+    clearInterval(this.voiceTimerId);
+  }
+
+  build() {
+    Column() {
+      // ==========================================
+      // 1. 顶部导航栏
+      // ==========================================
+      Row() {
+        Row() {
+          Image($r("app.media.left"))
+            .width(12)
+            .height(24)
+            .objectFit(ImageFit.Contain)
+        }
+        .padding({ left: 16, right: 16, top: 10, bottom: 10 })
+        .onClick(() => {
+          router.back({ url: 'pages/Page9' });
+        })
+
+        Blank()
+
+        Row() {
+          Text("学习模式")
+            .fontSize(10)
+            .fontWeight(FontWeight.Medium)
+            .fontColor('#333333')
+        }
+        .padding({ left: 16, right: 16, top: 6, bottom: 6 })
+        .backgroundColor(AppTheme.PrimaryYellow)
+        .borderRadius(16)
+        .margin({ right: 16 })
+      }
+      .width('100%')
+      .height(44)
+      .alignItems(VerticalAlign.Center)
+      .margin({ bottom: 8 })
+
+      // ==========================================
+      // 2. 上半部分：左侧答案 + 右侧摄像头与操作区
+      // ==========================================
+      Row({ space: 12 }) {
+
+        // --- 左侧：答案显示区 ---
+        Column() {
+          Row() {
+            Row() {
+              Image($r("app.media.dacha"))
+                .width(14).height(14)
+            }
+            .width(32).height(32)
+            .backgroundColor('#F5F5F5')
+            .borderRadius(16)
+            .justifyContent(FlexAlign.Center)
+            .onClick(() => {
+              RouterModule.pop();
+            })
+
+            Blank()
+
+            Row() {
+              Image($r("app.media.fangda"))
+                .width(14).height(14)
+            }
+            .width(32).height(32)
+            .backgroundColor('#F5F5F5')
+            .borderRadius(16)
+            .justifyContent(FlexAlign.Center)
+            .onClick(() => {
+              // 👇 替换为全局路由管理，传入你在路由表里注册的名字
+              RouterModule.push('AnswerDetailPage');
+            })
+          }
+          .width('100%')
+          .padding({ left: 16, right: 16, top: 16, bottom: 8 })
+
+          Scroll() {
+            Text(this.answerText)
+              .fontSize(12)
+              .fontColor(AppTheme.TextBlack)
+              .lineHeight(20)
+              .padding({ left: 16, right: 16, bottom: 16 })
+              .width('100%')
+          }
+          .layoutWeight(1)
+          .width('100%')
+          .align(Alignment.TopStart)
+          .scrollBar(BarState.Auto)
+        }
+        .layoutWeight(5.5)
+        .height('100%')
+        .backgroundColor(Color.White)
+        .borderRadius(24)
+
+        // --- 右侧：摄像头 + 组件卡片 ---
+        Column({ space: 12 }) {
+
+          // 1. 摄像头区域
+          Stack({ alignContent: Alignment.TopStart }) {
+            Image($r("app.media.Rectangle80"))
+              .width('100%')
+              .height('100%')
+              .objectFit(ImageFit.Cover)
+              .backgroundColor('#E8E8E8')
+              .borderRadius(24)
+
+            Row() {
+              Image($r("app.media.camera"))
+                .width(18).height(14)
+            }
+            .width(28).height(28)
+            .backgroundColor('rgba(255,255,255,0.7)')
+            .borderRadius(14)
+            .justifyContent(FlexAlign.Center)
+            .margin({ top: 12, left: 12 })
+          }
+          .width('100%')
+          .aspectRatio(1)
+          .borderRadius(24)
+          .clip(true)
+
+          // 2. 新组件区
+          Column() {
+            // 【调整1：基础 Tag 的样式与对齐】
+            Row() {
+              Text("基础")
+                .fontSize(11)
+                .fontWeight(FontWeight.Bold) // 加粗
+                .fontColor(AppTheme.TextBlack)
+                .padding({ left: 12, right: 12, top: 4, bottom: 2 })
+                // 加粗边框，圆角拉满变成药丸形
+                .border({ width: 2, color: AppTheme.PrimaryYellow, radius: 20 })
+            }
+            .width('100%')
+            .justifyContent(FlexAlign.Start) // 确保靠左
+
+            // 【调整2：超级弹簧，强行撑开中间的空白！】
+            // 给 Blank 加 layoutWeight(1) 是 ArkUI 里最强的占位魔法
+            Blank().layoutWeight(1)
+
+            // 下方菜单组
+            Column() {
+              Row() {
+                Text("加入题库")
+                  .fontSize(14) // 字体稍微大一点
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor(AppTheme.TextBlack)
+                Blank()
+                Image($r("app.media.aixin"))
+                  .width(20).height(20) // 图标也稍微大一点
+                  .objectFit(ImageFit.Contain)
+              }
+              .width('100%')
+              .alignItems(VerticalAlign.Center)
+
+              // 这里的 margin 控制两条菜单中间的间距
+              Divider().color('#D9D9D9').margin({ top: 8, bottom: 11 })
+
+              Row() {
+                Text("高分要点")
+                  .fontSize(14)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor(AppTheme.TextBlack)
+                Blank()
+                Image($r("app.media.yaodian"))
+                  .width(20).height(20)
+                  .objectFit(ImageFit.Contain)
+              }
+              .width('100%')
+              .alignItems(VerticalAlign.Center)
+            }
+            .width('100%')
+          }
+          .width('100%')
+          .layoutWeight(1) // 让外层卡片自适应填满剩余高度，与左侧完全等高
+          .backgroundColor(Color.White)
+          .borderRadius(24)
+          // 【调整3：控制四周的边距】
+          .padding({ left: 16, right: 16, top: 1, bottom: 6 })
+        }
+        .layoutWeight(4.5)
+        .height('100%')
+
+      }
+      .width('calc(100% - 32vp)')
+      // 【核心修改：黄金分割 4:6】：这里的比例和 StudyInterviewPage 完全保持一致
+      // 整体瞬间上提，且切换页面时中线不会抖动！
+      .layoutWeight(4)
+      .alignItems(VerticalAlign.Top)
+      .margin({ bottom: 16 })
+
+      // ==========================================
+      // 3. 下半部分：面试交互区域
+      // ==========================================
+      Column() {
+        Column() {
+          Text("请用一分钟的时间，做一下自我介绍。")
+            .fontSize(14)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(AppTheme.TextBlack)
+            .width('100%')
+            .backgroundColor(Color.White)
+            .borderRadius(22)
+            .padding({ left: 14, top: 8, bottom: 8, right: 20 })
+        }
+        .width('100%')
+        .padding(2)
+        .borderRadius(24)
+        .linearGradient({
+          angle: 90,
+          colors: [
+            ['#FF3434', 0], ['#FFE600', 0.16], ['#37FF00', 0.33],
+            ['#00BBFF', 0.5], ['#006AFF', 0.66], ['#4000FF', 0.83], ['#FF00EE', 1]
+          ]
+        })
+        .margin({ bottom: 16 })
+
+        Scroll() {
+          Text(this.transcriptText)
+            .fontSize(12)
+            .fontColor('#000000')
+            .lineHeight(20)
+            .width('100%')
+        }
+        .width('85%')
+        .alignSelf(ItemAlign.End)
+        .constraintSize({ minHeight: 120 })
+        .backgroundColor('#EEEEEE')
+        .borderRadius({ topLeft: 16, topRight: 16, bottomLeft: 16, bottomRight: 16 })
+        .padding(16)
+
+
+        Blank()
+
+        // ==========================================
+        // --- 3.3 底部交互区 ---
+        // ==========================================
+        Stack({ alignContent: Alignment.Center }) {
+
+          // 核心中心组件：发光动态语音球
+          Stack({ alignContent: Alignment.Center }) {
+            Circle().width(65).height(65).fill('#00BBFF').blur(25).offset({ x: -15 })
+            Circle().width(65).height(65).fill('#4000FF').blur(25).offset({ x: 15 })
+
+            Image(this.voiceImageResources[this.voiceImageIndex])
+              .width(75)
+              .height(75)
+              .objectFit(ImageFit.Contain)
+              .blendMode(BlendMode.SCREEN)
+          }
+          .width(100)
+          .height(80)
+
+          // 左侧增加“跳过”按钮
+          Row() {
+            Button("跳过")
+              .width(56)
+              .height(24)
+              .fontSize(10)
+              .fontWeight(FontWeight.Medium)
+              .fontColor('#575757')
+              .backgroundColor(Color.White)
+              .border({ width: 2, color: '#B9B9B9' })
+              .onClick(() => {
+                console.log("点击了跳过");
+              })
+          }
+          .width('100%')
+          .height('100%')
+          .justifyContent(FlexAlign.Start)
+          .alignItems(VerticalAlign.Center)
+          .hitTestBehavior(HitTestMode.Transparent)
+
+          // 右侧增加动态出现的“提示”按钮
+          Row() {
+            Stack({ alignContent: Alignment.Bottom }) {
+
+              if (this.isAnswerReady) {
+                Button("提示")
+                  .width(56)
+                  .height(24)
+                  .fontSize(10)
+                  .fontWeight(FontWeight.Medium)
+                  .padding({left:5,right:5})
+                  .fontColor('#000000')
+                  .backgroundColor(AppTheme.PrimaryYellow)
+                  .offset({ y: -32 })
+                  .onClick(() => {
+                    console.log("进入答案页面");
+                  })
+              }
+
+              Button(this.isAnswerReady ? "答完了" : this.countdown.toString())
+                .width(56)
+                .height(24)
+                .fontSize(10)
+                .fontWeight(FontWeight.Medium)
+                .padding({left:5,right:5})
+                .fontColor(Color.White)
+                .backgroundColor(this.isAnswerReady ? '#007DFF' : '#B2B2B2')
+                .border({ width: this.isAnswerReady ? 2 : 0, color: '#007DFF' })
+                .onClick(() => {
+                  if (this.isAnswerReady) {
+                    console.log("切换到下一题");
+                  }
+                })
+            }
+          }
+          .width('100%')
+          .height('100%')
+          .justifyContent(FlexAlign.End)
+          .alignItems(VerticalAlign.Center)
+          .hitTestBehavior(HitTestMode.Transparent)
+
+        }
+        .width('100%')
+        .height(80)
+        .margin({ top: 16, bottom: 8 })
+
+      }
+      .width('100%')
+      // 【核心修改：黄金分割 4:6】：下半部分占据 6 份，和学习页一模一样
+      .layoutWeight(6)
+      .backgroundColor(Color.White)
+      .borderRadius({ topLeft: 24, topRight: 24 })
+      .padding({ left: 16, right: 16, top: 16, bottom: 5 })
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor('#F7F8FA')
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+  }
+}
