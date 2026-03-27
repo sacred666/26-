@@ -1,0 +1,245 @@
+import { AppTheme } from '../constants/AppTheme'
+import { RouterModule } from '../utils/RouterModule'
+
+@Entry
+@Component
+export struct RealInterviewPage {
+  // --- 状态控制 ---
+  @State countdown: number = 10; // 10秒倒计时
+  @State isAnswerReady: boolean = false; // 是否可以点击“答完了”
+
+  // 语音输入动画图片索引及资源数组
+  @State voiceImageIndex: number = 0;
+  private voiceImageResources: Resource[] = [
+    $r("app.media.v1"),
+    $r("app.media.v2"),
+    $r("app.media.v3"),
+    $r("app.media.v4"),
+    $r("app.media.v5"),
+    $r("app.media.v6")
+  ];
+
+  // 模拟语音转文字的打字机效果
+  @State transcriptText: string = "";
+  private fullTranscript: string = "这里是回答内容的实时语音转文字。我现在正在模拟用户的真实语音输入过程，伴随着你说话声音的起伏，下方的光晕波形也会随之产生真实的跳动感，10秒之后右侧的按钮就会亮起...";
+
+  private timerId: number = -1;
+  private voiceTimerId: number = -1;
+
+  aboutToAppear() {
+    // 1. 开启倒计时器
+    this.timerId = setInterval(() => {
+      if (this.countdown > 0) {
+        this.countdown--;
+      } else {
+        this.isAnswerReady = true;
+      }
+    }, 1000);
+
+    // 2. 模拟声音震动和打字效果的高频定时器
+    let charIndex = 0;
+    this.voiceTimerId = setInterval(() => {
+      this.voiceImageIndex = (this.voiceImageIndex + 1) % this.voiceImageResources.length;
+
+      if (charIndex < this.fullTranscript.length) {
+        this.transcriptText += this.fullTranscript[charIndex];
+        charIndex++;
+      }
+    }, 150);
+  }
+
+  aboutToDisappear() {
+    clearInterval(this.timerId);
+    clearInterval(this.voiceTimerId);
+  }
+
+  build() {
+    Column() {
+      // ==========================================
+      // 1. 顶部导航栏
+      // ==========================================
+      Row() {
+        // 【修复1】：返回键隐身问题。用 Row 包裹 Image，将 Padding 加在 Row 上
+        Row() {
+          Image($r("app.media.left"))
+            .width(12)
+            .height(24)
+            .objectFit(ImageFit.Contain) // 确保图片正常缩放
+        }
+        .padding({ left: 16, right: 16, top: 10, bottom: 10 })
+        .onClick(() => {
+          RouterModule.popToName('Page9');
+        })
+
+        Blank()
+
+        Row() {
+          Text("实战模式")
+            .fontSize(10)
+            .fontWeight(FontWeight.Medium)
+            .fontColor('#685300')
+        }
+        .padding({ left: 16, right: 16, top: 6, bottom: 6 })
+        .backgroundColor('#80FFCC00')
+        .borderRadius(16)
+        .margin({ right: 16 })
+      }
+      .width('100%')
+      .height(44)
+      .alignItems(VerticalAlign.Center)
+      .margin({ top: 8, bottom: 8 })
+
+      // ==========================================
+      // 2. 上半部分：摄像头占位区域 (自适应高度)
+      // ==========================================
+      Stack({ alignContent: Alignment.TopStart }) {
+        Image($r("app.media.Rectangle80"))
+          .width('100%')
+          .height('100%')
+          .objectFit(ImageFit.Cover)
+          .backgroundColor('#E8E8E8')
+          .borderRadius(24)
+
+        Row() {
+          Image($r("app.media.camera"))
+            .width(20)
+            .height(20)
+        }
+        .width(40)
+        .height(40)
+        .backgroundColor('rgba(255,255,255,0.7)')
+        .borderRadius(20)
+        .justifyContent(FlexAlign.Center)
+        .margin({ top: 16, left: 16 })
+
+        Row() {
+          Text("❤️")
+            .fontSize(18)
+            .margin({ right: 4 })
+          Text("86")
+            .fontSize(20)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(Color.Black)
+          Text(" BPM")
+            .fontSize(10)
+            .fontColor('#666666')
+            .margin({ top: 6 })
+        }
+        .padding({ left: 12, right: 12, top: 8, bottom: 8 })
+        .backgroundColor('rgba(255,255,255,0.8)')
+        .borderRadius(20)
+        .shadow({ radius: 10, color: 'rgba(0,0,0,0.1)', offsetY: 4 })
+        .position({ right: 16, top: 16 })
+      }
+      .width('calc(100% - 32vp)')
+      .layoutWeight(4)
+      .margin({ bottom: 16 })
+
+      // ==========================================
+      // 3. 下半部分：面试交互区域
+      // ==========================================
+      Column() {
+        // --- 3.1 彩虹渐变边框的问题框 ---
+        Column() {
+          Text("请用一分钟的时间，做一下自我介绍。")
+            .fontSize(14)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(AppTheme.TextBlack)
+            .width('100%')
+            .backgroundColor(Color.White)
+            .borderRadius(22)
+            .padding({ left: 14, top: 8, bottom: 8, right: 20 })
+        }
+        .width('100%')
+        .padding(2)
+        .borderRadius(24)
+        .linearGradient({
+          angle: 90,
+          colors: [
+            ['#FF3434', 0], ['#FFE600', 0.16], ['#37FF00', 0.33],
+            ['#00BBFF', 0.5], ['#006AFF', 0.66], ['#4000FF', 0.83], ['#FF00EE', 1]
+          ]
+        })
+        .margin({ bottom: 16 })
+
+        // --- 3.2 语音转写灰底文字框 ---
+        Column() {
+          Text(this.transcriptText)
+            .fontSize(12)
+            .fontColor('#000000')
+            .lineHeight(22)
+            .width('100%')
+        }
+        // 【修复2】：控制宽度为 75%（也就是大概 3/4）
+        .width('85%')
+        // 【核心】：让气泡靠屏幕左侧对齐
+        .alignSelf(ItemAlign.End)
+        .constraintSize({ minHeight: 120 })
+        .backgroundColor('#EEEEEE')
+        .borderRadius({
+          topLeft: 16,     // 模仿聊天气泡，左上角圆角可以小一点
+          topRight: 16,
+          bottomLeft: 16,
+          bottomRight: 16
+        })
+        .padding(10)
+        .alignItems(HorizontalAlign.Start)
+
+        // 空白弹簧，把底部的操作区顶到最下面
+        Blank()
+
+        // --- 3.3 底部交互区 (语音动效 & 倒计时按钮) ---
+        Stack({ alignContent: Alignment.Center }) {
+
+          Stack({ alignContent: Alignment.Center }) {
+            Circle().width(65).height(65).fill('#00BBFF').blur(25).offset({ x: -15 })
+            Circle().width(65).height(65).fill('#4000FF').blur(25).offset({ x: 15 })
+
+            Image(this.voiceImageResources[this.voiceImageIndex])
+              .width(75)
+              .height(75)
+              .objectFit(ImageFit.Contain)
+              .blendMode(BlendMode.SCREEN)
+          }
+          .width(100)
+          .height(80)
+
+          Row() {
+            Button(this.isAnswerReady ? "答完了" : this.countdown.toString())
+              .width(56)
+              .height(24)
+              .fontSize(10)
+              .fontWeight(FontWeight.Medium)
+              .padding({left:5,right:5})
+              .fontColor(Color.White)
+              .backgroundColor(this.isAnswerReady ? '#007DFF' : '#B2B2B2')
+              .border({ width: this.isAnswerReady ? 2 : 0, color: '#007DFF' })
+              .onClick(() => {
+                if (this.isAnswerReady) {
+                  console.log("切换到下一题");
+                }
+              })
+          }
+          .width('100%')
+          .height('100%')
+          .justifyContent(FlexAlign.End)
+          .hitTestBehavior(HitTestMode.Transparent)
+
+        }
+        .width('100%')
+        .height(80)
+        .margin({ top: 16, bottom: 8 })
+
+      }
+      .width('100%')
+      .layoutWeight(6)
+      .backgroundColor(Color.White)
+      .borderRadius({ topLeft: 24, topRight: 24 })
+      .padding({ left: 16, right: 16, top: 16, bottom: 5 })
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor('#F7F8FA')
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+  }
+}
