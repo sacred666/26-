@@ -13,6 +13,10 @@ import { Page8 } from './Page8'
 import { Layouts } from './Layouts'
 import { Page9 } from './Page9'
 import { PreparationPage } from './PreparationPage'
+import { RealInterviewPage } from './RealInterviewPage'
+import { StudyInterviewPage } from './StudyInterviewPage'
+import { AnswerDetailPage } from './AnswerDetailPage'
+import { AnswerPage } from './AnswerPage'
 
 @Entry
 @Component
@@ -70,6 +74,26 @@ struct Index {
     else if (name === 'PreparationPage') {
       NavDestination() {
         PreparationPage()
+      }.hideTitleBar(true)
+    }
+    else if (name === 'RealInterviewPage') {
+      NavDestination() {
+        RealInterviewPage()
+      }.hideTitleBar(true)
+    }
+    else if (name === 'StudyInterviewPage') {
+      NavDestination() {
+        StudyInterviewPage()
+      }.hideTitleBar(true)
+    }
+    else if (name === 'AnswerPage') {
+      NavDestination() {
+        AnswerPage()
+      }.hideTitleBar(true)
+    }
+    else if (name === 'AnswerDetailPage') {
+      NavDestination() {
+        AnswerDetailPage()
       }.hideTitleBar(true)
     }
     else if (name === 'Layouts') {
