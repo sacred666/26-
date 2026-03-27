@@ -1,0 +1,141 @@
+import { AppTheme } from '../constants/AppTheme'
+import { RouterModule } from '../utils/RouterModule'
+
+@Entry
+@Component
+export struct AnswerDetailPage {
+  // 模拟长文本数据，与前一页保持一致
+  private answerText: string = "这里是答案显示区。这里是答案显示区。这里是答案显示区域。这里是答案显示区。\n这里是答案显示区。这里是答案显示区域。这里是答案显示区。这里是答案显示区。\n这里是答案显示区域。这里是答案显示区。这里是答案显示区。这里是答案显示区域。\n这里是答案显示区。这里是答案显示区。这里是答案显示区域。这里是答案显示区。这里是答案显示区域。\n\n这里是答案显示区。这里是答案显示区。这里是答案显示区域。这里是答案显示区。\n这里是答案显示区。这里是答案显示区域。这里是答案显示区。这里是答案显示区。\n这里是答案显示区域。这里是答案显示区。这里是答案显示区。这里是答案显示区域。\n这里是答案显示区。这里是答案显示区。这里是答案显示区域。这里是答案显示区。这里是答案显示区域。\n\n这里是答案显示区。这里是答案显示区。这里是答案显示区域。这里是答案显示区。\n这里是答案显示区。这里是答案显示区域。这里是答案显示区。这里是答案显示区。\n这里是答案显示区域。这里是答案显示区。这里是答案显示区。这里是答案显示区域。\n这里是答案显示区。这里是答案显示区。这里是答案显示区域。这里是答案显示区。这里是答案显示区域。";
+
+  build() {
+    Column() {
+      // ==========================================
+      // 1. 顶部导航栏
+      // ==========================================
+      Row() {
+        Row() {
+          Image($r("app.media.left"))
+            .width(12)
+            .height(24)
+            .objectFit(ImageFit.Contain)
+        }
+        .padding({ left: 16, right: 16, top: 10, bottom: 10 })
+        .onClick(() => {
+          // 需求：左上角点击返回，直接跳回 Page9
+          RouterModule.popToName('Page9');
+        })
+
+        Blank()
+
+        Row() {
+          Text("学习模式")
+            .fontSize(10)
+            .fontWeight(FontWeight.Medium)
+            .fontColor('#333333')
+        }
+        .padding({ left: 16, right: 16, top: 6, bottom: 6 })
+        .backgroundColor(AppTheme.PrimaryYellow)
+        .borderRadius(16)
+        .margin({ right: 16 })
+      }
+      .width('100%')
+      .height(44)
+      .alignItems(VerticalAlign.Center)
+      .margin({ top: 8, bottom: 8 })
+
+      // ==========================================
+      // 2. 核心内容区 (白色大卡片)
+      // ==========================================
+      Stack({ alignContent: Alignment.BottomEnd }) {
+
+        Column() {
+          // --- 2.1 卡片顶部操作区：打叉 和 缩小 ---
+          Row() {
+            Row() {
+              Image($r("app.media.dacha"))
+                .width(14).height(14)
+            }
+            .width(32).height(32)
+            .backgroundColor('#F5F5F5')
+            .borderRadius(16)
+            .justifyContent(FlexAlign.Center)
+            .onClick(() => {
+              // 需求：打叉跳转到 StudyInterviewPage（将栈顶出栈直到露出学习主页）
+              RouterModule.popToName('StudyInterviewPage');
+            })
+
+            Blank()
+
+            Row() {
+              Image($r("app.media.suoxiao"))
+                .width(32).height(32)
+            }
+            .width(32).height(32)
+            .backgroundColor('#F5F5F5')
+            .borderRadius(16)
+            .justifyContent(FlexAlign.Center)
+            .onClick(() => {
+              // 需求：缩小回退到 AnswerPage 页面（只退一层）
+              RouterModule.pop();
+            })
+          }
+          .width('100%')
+          .padding({ left: 16, right: 16, top: 16, bottom: 8 })
+
+          // --- 2.2 答案长文本滚动区 ---
+          Scroll() {
+            Text(this.answerText)
+              .fontSize(12)
+              .fontColor(AppTheme.TextBlack)
+              .lineHeight(18)
+              .fontWeight(FontWeight.Medium)
+              // 底部留出 80vp 空间，防止文字被右下角的悬浮胶囊遮挡
+              .padding({ left: 16, right: 16, bottom: 80 })
+              .width('100%')
+          }
+          .layoutWeight(1) // 占满卡片剩余空间
+          .width('100%')
+          .align(Alignment.TopStart)
+          .scrollBar(BarState.Auto)
+        }
+        .width('100%')
+        .height('100%')
+
+        // --- 2.3 右下角悬浮操作胶囊 (爱心 & 要点) ---
+        Row({ space: 6 }) {
+          Image($r("app.media.aixin"))
+            .width(18)
+            .height(17)
+            .objectFit(ImageFit.Contain)
+            .onClick(() => {
+              console.log("点击了加入题库");
+            })
+
+          Image($r("app.media.yaodian"))
+            .width(18)
+            .height(17)
+            .objectFit(ImageFit.Contain)
+            .onClick(() => {
+              console.log("点击了高分要点");
+            })
+        }
+        .padding({ left: 16, right: 16, top: 10, bottom: 10 })
+        .backgroundColor('#F5F5F5')
+        .borderRadius(20)
+        .margin({ right: 16, bottom: 24 })
+
+      }
+      .width('calc(100% - 32vp)')
+      .layoutWeight(1) // 占满屏幕除去顶部导航的剩余高度
+      .backgroundColor(Color.White)
+      .borderRadius(24)
+      .margin({ bottom: 16 })
+      .clip(true) // 确保子组件不会超出圆角卡片边界
+
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor('#F7F8FA')
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+  }
+}
