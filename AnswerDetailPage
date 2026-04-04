@@ -4,8 +4,19 @@ import { RouterModule } from '../utils/RouterModule'
 @Entry
 @Component
 export struct AnswerDetailPage {
-  // 模拟长文本数据，与前一页保持一致
-  private answerText: string = "这里是答案显示区。这里是答案显示区。这里是答案显示区域。这里是答案显示区。\n这里是答案显示区。这里是答案显示区域。这里是答案显示区。这里是答案显示区。\n这里是答案显示区域。这里是答案显示区。这里是答案显示区。这里是答案显示区域。\n这里是答案显示区。这里是答案显示区。这里是答案显示区域。这里是答案显示区。这里是答案显示区域。\n\n这里是答案显示区。这里是答案显示区。这里是答案显示区域。这里是答案显示区。\n这里是答案显示区。这里是答案显示区域。这里是答案显示区。这里是答案显示区。\n这里是答案显示区域。这里是答案显示区。这里是答案显示区。这里是答案显示区域。\n这里是答案显示区。这里是答案显示区。这里是答案显示区域。这里是答案显示区。这里是答案显示区域。\n\n这里是答案显示区。这里是答案显示区。这里是答案显示区域。这里是答案显示区。\n这里是答案显示区。这里是答案显示区域。这里是答案显示区。这里是答案显示区。\n这里是答案显示区域。这里是答案显示区。这里是答案显示区。这里是答案显示区域。\n这里是答案显示区。这里是答案显示区。这里是答案显示区域。这里是答案显示区。这里是答案显示区域。";
+  // ==========================================
+  // 【核心绑定】：接入全局统一的题目索引
+  // ==========================================
+  @StorageLink('currentQuestionIndex') currentIndex: number = 0;
+
+  // 模拟后端返回的标准答案解析数组（和 AnswerPage 保持完全一致）
+  @State answers: string[] = [
+    "【参考解析 1】\n自我介绍需要清晰地表达个人背景、核心能力与岗位的匹配度。建议结构：\n1. 问候与感谢。\n2. 个人基本情况与教育背景。\n3. 重点突出与岗位相关的核心项目经验和成就。\n4. 表达对该公司的向往和职业规划。\n\n注意事项：时间控制在1-2分钟，避免像背诵简历，要突出亮点。",
+    "【参考解析 2】\n这个问题考察的是你的抗压能力和解决问题的思维。STAR法则作答最佳：\nSituation (情境)：描述困难发生的背景。\nTask (任务)：你在其中需要完成什么目标。\nAction (行动)：你采取了哪些具体的、创新的步骤来克服困难。\nResult (结果)：最终取得了什么积极成果，以及你从中复盘学到了什么。",
+    "【参考解析 3】\n理解岗位需求是关键。你需要展现：\n1. 对岗位职责的精准解读（可以结合 JD）。\n2. 列举 1-2 项你的核心硬技能或软技能。\n3. 用过往的成功案例来证明你的这些优势如何能够快速为新团队带来价值。",
+    "【参考解析 4】\n考察团队协作和沟通能力。建议回答思路：\n1. 态度：保持冷静，不带入个人情绪，认识到分歧是常态。\n2. 沟通：主动组织私下或公开的沟通会议，倾听各方意见。\n3. 聚焦：将讨论焦点拉回共同的业务目标上。\n4. 决策：寻求基于数据和事实的共识，如果实在无法达成，服从团队 leader 的最终决定。",
+    "【参考解析 5】\n考察学习能力和自驱力。回答要点：\n1. 动机：为什么要学这个新技能（业务需要或个人兴趣提升）。\n2. 过程：通过什么途径学习（快速阅读文档、请教前辈、报班等）。\n3. 应用：这是最重要的，一定要说清楚这个新技能是如何帮助你提高工作效率、解决特定问题或创造了什么新价值的。"
+  ];
 
   build() {
     Column() {
@@ -21,7 +32,7 @@ export struct AnswerDetailPage {
         }
         .padding({ left: 16, right: 16, top: 10, bottom: 10 })
         .onClick(() => {
-          // 需求：左上角点击返回，直接跳回 Page9
+          // 左上角点击返回，直接跳回 Page9
           RouterModule.popToName('Page9');
         })
 
@@ -60,7 +71,7 @@ export struct AnswerDetailPage {
             .borderRadius(16)
             .justifyContent(FlexAlign.Center)
             .onClick(() => {
-              // 需求：打叉跳转到 StudyInterviewPage（将栈顶出栈直到露出学习主页）
+              // 打叉跳转到 StudyInterviewPage（将栈顶出栈直到露出学习主页）
               RouterModule.popToName('StudyInterviewPage');
             })
 
@@ -75,7 +86,7 @@ export struct AnswerDetailPage {
             .borderRadius(16)
             .justifyContent(FlexAlign.Center)
             .onClick(() => {
-              // 需求：缩小回退到 AnswerPage 页面（只退一层）
+              // 缩小回退到 AnswerPage 页面（只退一层）
               RouterModule.pop();
             })
           }
@@ -84,7 +95,8 @@ export struct AnswerDetailPage {
 
           // --- 2.2 答案长文本滚动区 ---
           Scroll() {
-            Text(this.answerText)
+            // 【核心绑定】：使用 answers 数组结合 currentIndex 渲染当前题目的答案
+            Text(this.answers[this.currentIndex])
               .fontSize(12)
               .fontColor(AppTheme.TextBlack)
               .lineHeight(18)
