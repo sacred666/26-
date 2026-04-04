@@ -1,0 +1,374 @@
+import { AppTheme } from '../constants/AppTheme'
+import { RouterModule } from '../utils/RouterModule'
+import router from '@ohos.router'
+import { Page9 } from './Page9';
+
+@Entry
+@Component
+export struct InterviewProReportPage {
+  // 模拟雷达图数据
+  @State skillLabels: string[] = ["专业性", "流畅性", "逻辑性", "自信度", "适应力"];
+  @State skillValues: number[] = [100, 90, 80, 75, 88]; // 0-100分
+
+  // 【修复1：声明 Canvas 的上下文变量】
+  private canvasSettings: RenderingContextSettings = new RenderingContextSettings(true);
+  private canvasContext: CanvasRenderingContext2D = new CanvasRenderingContext2D(this.canvasSettings);
+
+  // 复用你项目的 header 结构
+  @Builder
+  Header() {
+    Row() {
+      // 1. App Logo / Name
+      Row({ space: 16 }) {
+        Image($r("app.media.Button")) // 这里借用返回图标作为 logo 占位
+          .width(34)
+          .height(28)
+          .objectFit(ImageFit.Contain)
+          .onClick(()=>{
+            RouterModule.popToName("Page9")
+          })
+        Text("Interview Pro")
+          .fontSize(16)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(AppTheme.TextBlack)
+      }
+      .alignItems(VerticalAlign.Center)
+
+      Blank() // 2. 超级弹簧撑开
+
+      // 3. 用户头像
+      Row() {
+        Image($r("app.media.avatar"))
+          .width(40)
+          .height(40)
+          .borderRadius(16)
+          .objectFit(ImageFit.Cover)
+      }
+    }
+    .width('100%')
+    .height(44)
+    .alignItems(VerticalAlign.Center)
+    .margin({ top: 10, bottom: 8 })
+    .padding({ left: 16, right: 16 })
+  }
+
+  // ======= 四个卡片的 Builder 函数 =======
+
+  // 1. 得分与总结卡片
+  @Builder
+  ScoreCard() {
+    Column() {
+      // 模拟圆环得分
+      Stack({ alignContent: Alignment.Center }) {
+        Progress({ value: 85, total: 100, type: ProgressType.Ring })
+          .color(AppTheme.PrimaryYellow)
+          .style({ strokeWidth: 10 })
+          .width(140)
+          .height(140)
+
+        Column() {
+          Text("85")
+            .fontSize(48)
+            .fontWeight(FontWeight.Bolder)
+            .fontColor("#2D2F31")
+          Text("/ 100")
+            .fontSize(14)
+            .fontColor('#5A5C5D')
+        }
+      }
+      .margin({ top: 44, bottom: 16 })
+
+      Text("太棒了")
+        .fontSize(30)
+        .fontWeight(FontWeight.Bold)
+        .fontColor("#2D2F31")
+        .margin({ bottom: 8 })
+
+      Text("你表现得很好，但仍在技术深度方面可以继续提升。")
+        .fontSize(18)
+        .fontColor('#5A5C5D')
+        .lineHeight(29.25)
+        .textAlign(TextAlign.Center)
+        .width('85%')
+    }
+    .width('100%')
+    .padding({ left: 24, right: 24, bottom: 24 })
+    .backgroundColor(Color.White)
+    .borderRadius(48)
+  }
+
+  // 2. 雷达图卡片
+  @Builder
+  RadarCard() {
+    Column() {
+      // 头部：标题与小图标
+      Row() {
+        Text("能力表现")
+          .fontSize(20)
+          .fontWeight(FontWeight.Bold)
+          .fontColor("#2D2F31")
+
+        Blank()
+
+        Image($r("app.media.Container")) // 占位图
+          .width(22)
+          .height(17)
+      }
+      .width('100%')
+      .padding({ left: 16, right: 16, top: 16, bottom: 16 })
+
+      // 【改动点1：移除 Stack 和 Position 定位文字，全权交给 Canvas 绘制】
+      Canvas(this.canvasContext)
+        .width('100%')
+        .aspectRatio(1) // 保持正方形
+        .onReady(() => {
+          const ctx = this.canvasContext;
+          // 清空画布以防重复渲染
+          ctx.clearRect(0, 0, ctx.width, ctx.height);
+
+          const centerX = ctx.width / 2;
+          const centerY = ctx.height / 2;
+          // 半径留出一定空间，防止文字画出画布边缘
+          const radius = Math.min(centerX, centerY) * 0.7;
+          const sides = this.skillLabels.length;
+
+          // 1. 绘制网格圆环
+          ctx.lineWidth = 1;
+          ctx.strokeStyle = '#CCCCCC';
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, radius * 1, 0, 2 * Math.PI); ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, radius * 0.75, 0, 2 * Math.PI); ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, radius * 0.5, 0, 2 * Math.PI); ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, radius * 0.25, 0, 2 * Math.PI); ctx.stroke();
+
+          // 2. 绘制中心连线
+          ctx.lineWidth = 1;
+          ctx.strokeStyle = '#EEEEEE';
+          for (let i = 0; i < sides; i++) {
+            const angle = (2 * Math.PI / sides) * i - Math.PI / 2;
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(centerX + radius * Math.cos(angle), centerY + radius * Math.sin(angle));
+            ctx.stroke();
+          }
+
+          // 3. 【核心修正】在画布上直接通过数学计算绘制文字标签
+          ctx.font = '12vp sans-serif';
+          ctx.fillStyle = '#666666';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+
+          for (let i = 0; i < sides; i++) {
+            const angle = (2 * Math.PI / sides) * i - Math.PI / 2;
+            // 将文字画在圆环外面 20vp 的距离
+            const textRadius = radius + 20;
+            const x = centerX + textRadius * Math.cos(angle);
+            const y = centerY + textRadius * Math.sin(angle);
+            ctx.fillText(this.skillLabels[i], x, y);
+          }
+
+          // 4. 绘制得分多边形
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = AppTheme.PrimaryYellow;
+          ctx.fillStyle = 'rgba(255,204,0,0.3)';
+          ctx.beginPath();
+          for (let i = 0; i < sides; i++) {
+            const angle = (2 * Math.PI / sides) * i - Math.PI / 2;
+            const valRadius = radius * (this.skillValues[i] / 100);
+            const x = centerX + valRadius * Math.cos(angle);
+            const y = centerY + valRadius * Math.sin(angle);
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          }
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+        })
+        .padding({ bottom: 24 })
+
+    }
+    .width('100%')
+    .backgroundColor(Color.White)
+    .borderRadius(24)
+  }
+
+  // 3. 增长卡片 (Blue)
+  @Builder
+  GrowthCard() {
+    Column() {
+      Row({ space: 12}) {
+        Image($r("app.media.Background")).width(40).height(40)
+        Text("成长了!")
+          .fontSize(20)
+          .fontWeight(FontWeight.Bold)
+          .fontColor("#004887")
+      }
+      .width('100%')
+      .padding({ left: 32, top: 32, bottom: 24 })
+
+      Column({ space: 50 }) {
+        this.CheckPointRow("语言逻辑", "对主要观点有清晰、逻辑的论述和深入讨论。")
+        this.CheckPointRow("问题解决", "关于本次挑战能够快速清晰定位并精准解决。")
+        this.CheckPointRow("自信程度", "关于本次自信能够从所展现的声音自信。")
+      }
+      .width('100%')
+      .padding({ left: 32, right: 32, bottom: 32 })
+    }
+    .width('100%')
+    .backgroundColor("#B9D3FF")
+    .borderRadius(24)
+  }
+
+  @Builder
+  CheckPointRow(title: string, desc: string) {
+    Row({ space: 16}) {
+      Image($r("app.media.888"))
+        .width(20).height(20)
+        .margin({ top: 1 })
+      Column() {
+        Text(title).fontSize(16).fontWeight(FontWeight.Bold).fontColor("#004887").margin({ bottom: 2 })
+        Text(desc).fontSize(14).fontColor('#B2004887').lineHeight(22.75).fontWeight(FontWeight.Regular)
+      }
+      .alignItems(HorizontalAlign.Start)
+      .layoutWeight(1)
+    }
+    .width('100%')
+    .alignItems(VerticalAlign.Top)
+  }
+
+  // 4. 提升卡片 (Red)
+  @Builder
+  ImproveCard() {
+    Column() {
+      Row({ space: 12 }) {
+        Image($r("app.media.555")).width(40).height(40)
+        Text("待提升")
+          .fontSize(20)
+          .fontWeight(FontWeight.Bold)
+          .fontColor("#69000B")
+      }
+      .width('100%')
+      .padding({ left: 32, top: 32, bottom: 32 })
+
+      Column({ space: 50 }) {
+        this.LightbulbRow("能力深度", "Try to explain standard difference between different SOL (NoSOL)")
+        this.LightbulbRow("思维能力", "Summerize your key achievements more strongly at the end.")
+      }
+      .width('100%')
+      .padding({ left: 32, right: 32, bottom: 32 })
+
+      Stack({ alignContent: Alignment.BottomStart }) {
+        Image($r("app.media.left"))
+          .width('100%')
+          .height(128)
+          .objectFit(ImageFit.Cover)
+          .borderRadius(16)
+
+        Text("团队协作能力")
+          .fontSize(11)
+          .fontColor(Color.White)
+          .fontWeight(FontWeight.Medium)
+          .backgroundColor('rgba(0,0,0,0.5)')
+          .padding({ left: 8, right: 8, top: 2, bottom: 2 })
+          .borderRadius(8)
+          .margin({ bottom: 8, left: 8 })
+      }
+      .width('calc(100% - 32vp)')
+      .margin({ bottom: 24 })
+    }
+    .width('100%')
+    .backgroundColor("#FF928B")
+    .borderRadius(24)
+  }
+
+  @Builder
+  LightbulbRow(title: string, desc: string) {
+    Row({ space: 16 }) {
+      Image($r("app.media.deng"))
+        .width(15).height(20)
+        .margin({ top: 1 })
+      Column() {
+        Text(title).fontSize(16).fontWeight(FontWeight.Bold).fontColor("#69000B").margin({ bottom: 2 })
+        Text(desc).fontSize(14).fontColor('#B269000B').lineHeight(22.75).fontWeight(FontWeight.Regular)
+      }
+      .alignItems(HorizontalAlign.Start)
+      .layoutWeight(1)
+    }
+    .width('100%')
+    .alignItems(VerticalAlign.Top)
+  }
+
+  // 底部黄色按钮 (View Details)
+  @Builder
+  FooterButton() {
+    Row() {
+      Button({ type: ButtonType.Normal, stateEffect: true }) {
+        // 【改动点2：使用 Stack 确保文本绝对居中，右侧箭头靠右】
+        Stack({ alignContent: Alignment.Center }) {
+          // 绝对居中的文字
+          Text("查看详情")
+            .fontSize(20)
+            .fontWeight(FontWeight.Bold)
+            .fontColor("#5B4B00")
+
+          // 撑开到100%宽度，通过 Blank 将箭头挤到最右边
+          Row() {
+            Blank()
+            Image($r("app.media.7777"))
+              .width(16)
+              .height(16)
+              .objectFit(ImageFit.Contain)
+          }
+          .width('100%')
+        }
+        .width('100%')
+        .padding({ left: 24, right: 24 })
+      }
+      .width('100%')
+      .height(56)
+      .backgroundColor(AppTheme.PrimaryYellow)
+      .borderRadius(9999)
+      .onClick(() => {
+        console.log("点击了查看详情");
+        // 跳转逻辑
+      })
+    }
+    .width('100%')
+    // 由于进入了瀑布流，去掉了 margin/padding 的影响，底部留出舒适边距
+    .padding({ top: 24, bottom: 24 })
+  }
+
+  // ======= 页面主体架构 =======
+  build() {
+    Column() {
+      // 1. 头部 (Logo, Avatar)
+      this.Header()
+
+      // 2. 瀑布流主体 (WaterFlow)
+      WaterFlow() {
+        FlowItem() { this.ScoreCard() }
+        FlowItem() { this.RadarCard() }
+        FlowItem() { this.GrowthCard() }
+        FlowItem() { this.ImproveCard() }
+
+        // 【改动点3：将底部按钮包裹在 FlowItem 中，使其可以随页面滑动】
+        FlowItem() { this.FooterButton() }
+      }
+      .columnsTemplate("1fr")
+      .columnsGap(16)
+      .rowsGap(16)
+      .width('100%')
+      .layoutWeight(1)
+      .padding({ left: 16, right: 16 })
+      // 去掉背景色，跟随页面大背景
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor("#F6F6F8")
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+  }
+}
+
+
