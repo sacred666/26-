@@ -1,9 +1,8 @@
 import { AppTheme } from '../constants/AppTheme'
 import { RouterModule } from '../utils/RouterModule'
-import abilityAccessCtrl, { Permissions } from '@ohos.abilityAccessCtrl'
+import abilityAccessCtrl from '@ohos.abilityAccessCtrl'
 import common from '@ohos.app.ability.common'
-// 【核心修改 1】：引入全局的相机管家组件，保持步调一致
-import { MiniCameraPreview } from './CameraService'
+import { MiniCameraPreview } from './MiniCameraPreview'
 
 @Entry
 @Component
@@ -12,6 +11,16 @@ export struct PreparationPage {
   @State progressValue: number = 0;
   @StorageProp('isRealMode') isRealMode: boolean = true;
   @State hasCameraPermission: boolean = false;
+
+  @State isCameraActive: boolean = true;
+
+  onPageShow() {
+    this.isCameraActive = true;
+  }
+
+  onPageHide() {
+    this.isCameraActive = false;
+  }
 
   aboutToAppear() {
     this.requestPermissionsAndStart();
@@ -25,7 +34,6 @@ export struct PreparationPage {
       this.startLoadingProcess();
     }).catch((err: Object) => {
       console.error("权限请求异常: " + JSON.stringify(err));
-      // 真实业务中这里应该提示用户，为了演示流程先放行
       this.hasCameraPermission = true;
       this.startLoadingProcess();
     })
@@ -77,8 +85,8 @@ export struct PreparationPage {
           Blank()
 
           Stack({ alignContent: Alignment.Bottom }) {
-            // 【核心修改 2】：使用全局组件，并分配一个专属的 componentId
-            MiniCameraPreview({ componentId: 'prep_cam' })
+            // 【核心修复】：去掉 if 判断，直接用 isActive 控制，彻底解决灰屏
+            MiniCameraPreview({ isActive: this.isCameraActive })
 
             Text("请正对摄像头")
               .fontSize(8)
