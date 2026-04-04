@@ -1,33 +1,61 @@
 import { AppTheme } from '../constants/AppTheme'
 import { RouterModule } from '../utils/RouterModule'
-import router from '@ohos.router'
+import { MiniCameraPreview } from './MiniCameraPreview'
 
 @Entry
 @Component
 export struct AnswerPage {
-  // --- 状态控制 ---
+  // 必须是 true，保证不灰屏！
+  @State isCameraActive: boolean = true;
+
+  onPageShow() {
+    this.isCameraActive = true;
+  }
+
+  onPageHide() {
+    this.isCameraActive = false;
+  }
+
+  @StorageLink('currentQuestionIndex') currentIndex: number = 0;
+
+  @State questions: string[] = [
+    "请用一分钟的时间，做一下自我介绍。",
+    "在你的过往经历中，遇到过最大的困难是什么？你是如何克服的？",
+    "请谈谈你对所应聘岗位的理解，以及你的核心优势。",
+    "如果团队内部出现了严重的分歧，你会如何处理？",
+    "请分享一个你主动学习新技能并将其应用到实际工作中的例子。"
+  ];
+
+  @State answers: string[] = [
+    "【参考解析 1】\n自我介绍需要清晰地表达个人背景、核心能力与岗位的匹配度。建议结构：\n1. 问候与感谢。\n2. 个人基本情况与教育背景。\n3. 重点突出与岗位相关的核心项目经验和成就。\n4. 表达对该公司的向往和职业规划。\n\n注意事项：时间控制在1-2分钟，避免像背诵简历，要突出亮点。",
+    "【参考解析 2】\n这个问题考察的是你的抗压能力和解决问题的思维。STAR法则作答最佳：\nSituation (情境)：描述困难发生的背景。\nTask (任务)：你在其中需要完成什么目标。\nAction (行动)：你采取了哪些具体的、创新的步骤来克服困难。\nResult (结果)：最终取得了什么积极成果，以及你从中复盘学到了什么。",
+    "【参考解析 3】\n理解岗位需求是关键。你需要展现：\n1. 对岗位职责的精准解读（可以结合 JD）。\n2. 列举 1-2 项你的核心硬技能或软技能。\n3. 用过往的成功案例来证明你的这些优势如何能够快速为新团队带来价值。",
+    "【参考解析 4】\n考察团队协作和沟通能力。建议回答思路：\n1. 态度：保持冷静，不带入个人情绪，认识到分歧是常态。\n2. 沟通：主动组织私下或公开的沟通会议，倾听各方意见。\n3. 聚焦：将讨论焦点拉回共同的业务目标上。\n4. 决策：寻求基于数据和事实的共识，如果实在无法达成，服从团队 leader 的最终决定。",
+    "【参考解析 5】\n考察学习能力和自驱力。回答要点：\n1. 动机：为什么要学这个新技能（业务需要或个人兴趣提升）。\n2. 过程：通过什么途径学习（快速阅读文档、请教前辈、报班等）。\n3. 应用：这是最重要的，一定要说清楚这个新技能是如何帮助你提高工作效率、解决特定问题或创造了什么新价值的。"
+  ];
+
   @State countdown: number = 0;
   @State isAnswerReady: boolean = true;
 
-  @State voiceImageIndex: number = 0;
-  private voiceImageResources: Resource[] = [
-    $r("app.media.v1"),
-    $r("app.media.v2"),
-    $r("app.media.v3"),
-    $r("app.media.v4"),
-    $r("app.media.v5"),
-    $r("app.media.v6")
+  @State barHeights: number[] = [0.2, 0.3, 0.5, 0.3, 0.2, 0.15];
+  @State audioFrameIndex: number = 0;
+  private audioFramesData: number[][] = [
+    [0.2, 0.3, 0.5, 0.3, 0.2, 0.15],
+    [0.3, 0.5, 0.7, 0.5, 0.3, 0.2],
+    [0.5, 0.7, 0.9, 0.7, 0.5, 0.3],
+    [0.4, 0.6, 0.8, 0.6, 0.4, 0.3],
+    [0.3, 0.5, 0.7, 0.5, 0.3, 0.2],
+    [0.2, 0.3, 0.5, 0.3, 0.2, 0.15]
   ];
 
   @State transcriptText: string = "这里是回答内容的实时语音转文字。这里是回答内容的实时语音转文字。这里是回答内容的实时语音转文字。这里是回答内容的实时语音转文字。这里是回答内容的实时语音转文字。这里是回答内容的实时语音转文字。这里是回答内容的实时语音转文字。";
-
-  private answerText: string = "这里是答案显示区。这里是答案显示区。这里是答案显示区域。这里是答案显示区。\n这里是答案显示区。这里是答案显示区域。这里是答案显示区。这里是答案显示区。\n这里是答案显示区域。这里是答案显示区。这里是答案显示区。这里是答案显示区域。\n这里是答案显示区。这里是答案显示区。这里是答案显示区域。这里是答案显示区。这里是答案显示区域。";
 
   private voiceTimerId: number = -1;
 
   aboutToAppear() {
     this.voiceTimerId = setInterval(() => {
-      this.voiceImageIndex = (this.voiceImageIndex + 1) % this.voiceImageResources.length;
+      this.audioFrameIndex = (this.audioFrameIndex + 1) % this.audioFramesData.length;
+      this.barHeights = this.audioFramesData[this.audioFrameIndex];
     }, 150);
   }
 
@@ -35,11 +63,20 @@ export struct AnswerPage {
     clearInterval(this.voiceTimerId);
   }
 
+  nextQuestion() {
+    if (this.currentIndex < this.questions.length - 1) {
+      this.currentIndex++;
+      this.isCameraActive = false;
+      RouterModule.pop();
+    } else {
+      this.isCameraActive = false;
+      RouterModule.clearAndPush('InterviewProReportPage');
+    }
+  }
+
   build() {
     Column() {
-      // ==========================================
       // 1. 顶部导航栏
-      // ==========================================
       Row() {
         Row() {
           Image($r("app.media.left"))
@@ -49,7 +86,8 @@ export struct AnswerPage {
         }
         .padding({ left: 16, right: 16, top: 10, bottom: 10 })
         .onClick(() => {
-          router.back({ url: 'pages/Page9' });
+          this.isCameraActive = false;
+          RouterModule.pop();
         })
 
         Blank()
@@ -70,9 +108,7 @@ export struct AnswerPage {
       .alignItems(VerticalAlign.Center)
       .margin({ bottom: 8 })
 
-      // ==========================================
       // 2. 上半部分：左侧答案 + 右侧摄像头与操作区
-      // ==========================================
       Row({ space: 12 }) {
 
         // --- 左侧：答案显示区 ---
@@ -87,6 +123,7 @@ export struct AnswerPage {
             .borderRadius(16)
             .justifyContent(FlexAlign.Center)
             .onClick(() => {
+              this.isCameraActive = false;
               RouterModule.pop();
             })
 
@@ -101,7 +138,7 @@ export struct AnswerPage {
             .borderRadius(16)
             .justifyContent(FlexAlign.Center)
             .onClick(() => {
-              // 👇 替换为全局路由管理，传入你在路由表里注册的名字
+              this.isCameraActive = false;
               RouterModule.push('AnswerDetailPage');
             })
           }
@@ -109,7 +146,7 @@ export struct AnswerPage {
           .padding({ left: 16, right: 16, top: 16, bottom: 8 })
 
           Scroll() {
-            Text(this.answerText)
+            Text(this.answers[this.currentIndex])
               .fontSize(12)
               .fontColor(AppTheme.TextBlack)
               .lineHeight(20)
@@ -128,15 +165,13 @@ export struct AnswerPage {
 
         // --- 右侧：摄像头 + 组件卡片 ---
         Column({ space: 12 }) {
-
-          // 1. 摄像头区域
           Stack({ alignContent: Alignment.TopStart }) {
-            Image($r("app.media.Rectangle80"))
-              .width('100%')
-              .height('100%')
-              .objectFit(ImageFit.Cover)
-              .backgroundColor('#E8E8E8')
-              .borderRadius(24)
+
+            if (this.isCameraActive) {
+              MiniCameraPreview()
+                .width('100%')
+                .height('100%')
+            }
 
             Row() {
               Image($r("app.media.camera"))
@@ -152,42 +187,36 @@ export struct AnswerPage {
           .aspectRatio(1)
           .borderRadius(24)
           .clip(true)
+          .backgroundColor('#E8E8E8')
 
-          // 2. 新组件区
           Column() {
-            // 【调整1：基础 Tag 的样式与对齐】
             Row() {
               Text("基础")
                 .fontSize(11)
-                .fontWeight(FontWeight.Bold) // 加粗
+                .fontWeight(FontWeight.Bold)
                 .fontColor(AppTheme.TextBlack)
                 .padding({ left: 12, right: 12, top: 4, bottom: 2 })
-                // 加粗边框，圆角拉满变成药丸形
                 .border({ width: 2, color: AppTheme.PrimaryYellow, radius: 20 })
             }
             .width('100%')
-            .justifyContent(FlexAlign.Start) // 确保靠左
+            .justifyContent(FlexAlign.Start)
 
-            // 【调整2：超级弹簧，强行撑开中间的空白！】
-            // 给 Blank 加 layoutWeight(1) 是 ArkUI 里最强的占位魔法
             Blank().layoutWeight(1)
 
-            // 下方菜单组
             Column() {
               Row() {
                 Text("加入题库")
-                  .fontSize(14) // 字体稍微大一点
+                  .fontSize(14)
                   .fontWeight(FontWeight.Medium)
                   .fontColor(AppTheme.TextBlack)
                 Blank()
                 Image($r("app.media.aixin"))
-                  .width(20).height(20) // 图标也稍微大一点
+                  .width(20).height(20)
                   .objectFit(ImageFit.Contain)
               }
               .width('100%')
               .alignItems(VerticalAlign.Center)
 
-              // 这里的 margin 控制两条菜单中间的间距
               Divider().color('#D9D9D9').margin({ top: 8, bottom: 11 })
 
               Row() {
@@ -206,10 +235,9 @@ export struct AnswerPage {
             .width('100%')
           }
           .width('100%')
-          .layoutWeight(1) // 让外层卡片自适应填满剩余高度，与左侧完全等高
+          .layoutWeight(1)
           .backgroundColor(Color.White)
           .borderRadius(24)
-          // 【调整3：控制四周的边距】
           .padding({ left: 16, right: 16, top: 1, bottom: 6 })
         }
         .layoutWeight(4.5)
@@ -217,18 +245,14 @@ export struct AnswerPage {
 
       }
       .width('calc(100% - 32vp)')
-      // 【核心修改：黄金分割 4:6】：这里的比例和 StudyInterviewPage 完全保持一致
-      // 整体瞬间上提，且切换页面时中线不会抖动！
       .layoutWeight(4)
       .alignItems(VerticalAlign.Top)
       .margin({ bottom: 16 })
 
-      // ==========================================
       // 3. 下半部分：面试交互区域
-      // ==========================================
       Column() {
         Column() {
-          Text("请用一分钟的时间，做一下自我介绍。")
+          Text(`${this.questions[this.currentIndex]}`)
             .fontSize(14)
             .fontWeight(FontWeight.Medium)
             .fontColor(AppTheme.TextBlack)
@@ -263,29 +287,33 @@ export struct AnswerPage {
         .borderRadius({ topLeft: 16, topRight: 16, bottomLeft: 16, bottomRight: 16 })
         .padding(16)
 
-
         Blank()
 
-        // ==========================================
-        // --- 3.3 底部交互区 ---
-        // ==========================================
         Stack({ alignContent: Alignment.Center }) {
 
-          // 核心中心组件：发光动态语音球
           Stack({ alignContent: Alignment.Center }) {
-            Circle().width(65).height(65).fill('#00BBFF').blur(25).offset({ x: -15 })
-            Circle().width(65).height(65).fill('#4000FF').blur(25).offset({ x: 15 })
-
-            Image(this.voiceImageResources[this.voiceImageIndex])
-              .width(75)
-              .height(75)
+            Image($r("app.media.6666"))
+              .width('100%')
+              .height('100%')
               .objectFit(ImageFit.Contain)
-              .blendMode(BlendMode.SCREEN)
-          }
-          .width(100)
-          .height(80)
+              .opacity(0.95)
 
-          // 左侧增加“跳过”按钮
+            Row() {
+              Column().width(3).height(this.barHeights[0] * 10).borderRadius(5).backgroundColor('#FBFBFB').margin({ left: 1, right: 1 })
+              Column().width(3).height(this.barHeights[1] * 10).borderRadius(5).backgroundColor('#FBFBFB').margin({ left: 1, right: 1 })
+              Column().width(3).height(this.barHeights[2] * 10).borderRadius(5).backgroundColor('#FBFBFB').margin({ left: 1, right: 1 })
+              Column().width(3).height(this.barHeights[3] * 10).borderRadius(5).backgroundColor('#FBFBFB').margin({ left: 1, right: 1 })
+              Column().width(3).height(this.barHeights[4] * 10).borderRadius(5).backgroundColor('#FBFBFB').margin({ left: 1, right: 1 })
+              Column().width(3).height(this.barHeights[5] * 10).borderRadius(5).backgroundColor('#FBFBFB').margin({ left: 1, right: 1 })
+            }
+            .width(110)
+            .height(100)
+            .padding({ top: 5, bottom: 5 })
+            .justifyContent(FlexAlign.Center)
+          }
+          .width(130)
+          .height(100)
+
           Row() {
             Button("跳过")
               .width(56)
@@ -296,7 +324,7 @@ export struct AnswerPage {
               .backgroundColor(Color.White)
               .border({ width: 2, color: '#B9B9B9' })
               .onClick(() => {
-                console.log("点击了跳过");
+                this.nextQuestion();
               })
           }
           .width('100%')
@@ -305,10 +333,8 @@ export struct AnswerPage {
           .alignItems(VerticalAlign.Center)
           .hitTestBehavior(HitTestMode.Transparent)
 
-          // 右侧增加动态出现的“提示”按钮
           Row() {
             Stack({ alignContent: Alignment.Bottom }) {
-
               if (this.isAnswerReady) {
                 Button("提示")
                   .width(56)
@@ -319,12 +345,12 @@ export struct AnswerPage {
                   .fontColor('#000000')
                   .backgroundColor(AppTheme.PrimaryYellow)
                   .offset({ y: -32 })
-                  .onClick(() => {
-                    console.log("进入答案页面");
-                  })
               }
 
-              Button(this.isAnswerReady ? "答完了" : this.countdown.toString())
+              Button(
+                !this.isAnswerReady ? this.countdown.toString() :
+                  (this.currentIndex === this.questions.length - 1 ? "看报告" : "答完了")
+              )
                 .width(56)
                 .height(24)
                 .fontSize(10)
@@ -335,7 +361,7 @@ export struct AnswerPage {
                 .border({ width: this.isAnswerReady ? 2 : 0, color: '#007DFF' })
                 .onClick(() => {
                   if (this.isAnswerReady) {
-                    console.log("切换到下一题");
+                    this.nextQuestion();
                   }
                 })
             }
@@ -353,7 +379,6 @@ export struct AnswerPage {
 
       }
       .width('100%')
-      // 【核心修改：黄金分割 4:6】：下半部分占据 6 份，和学习页一模一样
       .layoutWeight(6)
       .backgroundColor(Color.White)
       .borderRadius({ topLeft: 24, topRight: 24 })
