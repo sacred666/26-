@@ -1,13 +1,10 @@
 import camera from '@ohos.multimedia.camera'
 
-// ==========================================
-// 【增强版】：不销毁画布，只控制视频流的真实摄像头组件
-// ==========================================
+// ★ 全局单例排队锁，专门解决页面切换回退时“上一个还没关完，下一个就抢着开”导致的卡顿死锁问题
+let cameraMutex: Promise<void> = Promise.resolve();
+
 @Component
 export struct MiniCameraPreview {
-  // 【核心修改 1】：接收外部的激活状态，并监听变化
-  @Prop @Watch('onActiveChange') isActive: boolean = true;
-
   private xComponentController: XComponentController = new XComponentController();
   private surfaceId: string = '';
   private cameraManager?: camera.CameraManager;
@@ -19,87 +16,75 @@ export struct MiniCameraPreview {
     this.releaseCamera();
   }
 
-  // 【核心修改 2】：当外部状态改变时，动态控制摄像头开关
-  onActiveChange() {
-    if (this.isActive) {
-      // 状态变为 true，且画布已准备好，则开启摄像头
-      if (this.surfaceId) {
-        this.initCamera();
+  initCamera() {
+    // 放入排队队列，保证绝对不会跟释放动作撞车
+    cameraMutex = cameraMutex.then(async () => {
+      try {
+        this.cameraManager = camera.getCameraManager(getContext(this));
+        let cameras: camera.CameraDevice[] = this.cameraManager.getSupportedCameras();
+
+        let frontCamera = cameras.find(c => c.cameraPosition === camera.CameraPosition.CAMERA_POSITION_FRONT) || cameras[0];
+        if (!frontCamera) return;
+
+        this.cameraInput = this.cameraManager.createCameraInput(frontCamera);
+        await this.cameraInput.open();
+
+        let capability = this.cameraManager.getSupportedOutputCapability(frontCamera, camera.SceneMode.NORMAL_VIDEO);
+        let previewProfile = capability.previewProfiles[0];
+
+        this.previewOutput = this.cameraManager.createPreviewOutput(previewProfile, this.surfaceId);
+
+        this.captureSession = this.cameraManager.createCaptureSession();
+        this.captureSession.beginConfig();
+        this.captureSession.addInput(this.cameraInput);
+        this.captureSession.addOutput(this.previewOutput);
+        await this.captureSession.commitConfig();
+        await this.captureSession.start();
+
+        console.info("[Camera] 前置摄像头预览启动成功！");
+      } catch (e) {
+        let err = e as Object;
+        console.error("相机初始化失败: " + JSON.stringify(err));
       }
-    } else {
-      // 状态变为 false，断开视频流释放硬件，但不销毁组件
-      this.releaseCamera();
-    }
+    }).catch((err: Object) => console.error(JSON.stringify(err)));
   }
 
-  async initCamera() {
-    if (!this.isActive) return; // 双重保险
-    try {
-      this.cameraManager = camera.getCameraManager(getContext(this));
-      let cameras: camera.CameraDevice[] = this.cameraManager.getSupportedCameras();
-
-      let frontCamera = cameras.find(c => c.cameraPosition === camera.CameraPosition.CAMERA_POSITION_FRONT) || cameras[0];
-      if (!frontCamera) {
-        console.error("未找到可用摄像头");
-        return;
+  releaseCamera() {
+    // 释放动作也放入队列
+    cameraMutex = cameraMutex.then(async () => {
+      try {
+        if (this.captureSession) {
+          await this.captureSession.stop();
+          await this.captureSession.release();
+          this.captureSession = undefined;
+        }
+        if (this.cameraInput) {
+          await this.cameraInput.close();
+          this.cameraInput = undefined;
+        }
+        if (this.previewOutput) {
+          await this.previewOutput.release();
+          this.previewOutput = undefined;
+        }
+        console.info("[Camera] 相机硬件资源已释放");
+      } catch (e) {
+        let err = e as Object;
+        console.error("释放相机资源失败: " + JSON.stringify(err));
       }
-
-      this.cameraInput = this.cameraManager.createCameraInput(frontCamera);
-      await this.cameraInput.open();
-
-      let cameraOutputCapability = this.cameraManager.getSupportedOutputCapability(frontCamera, camera.SceneMode.NORMAL_VIDEO);
-      let previewProfile = cameraOutputCapability.previewProfiles[0];
-
-      this.previewOutput = this.cameraManager.createPreviewOutput(previewProfile, this.surfaceId);
-
-      this.captureSession = this.cameraManager.createCaptureSession();
-      this.captureSession.beginConfig();
-      this.captureSession.addInput(this.cameraInput);
-      this.captureSession.addOutput(this.previewOutput);
-      await this.captureSession.commitConfig();
-      await this.captureSession.start();
-
-      console.info("前置摄像头预览启动成功！");
-    } catch (e) {
-      console.error("相机初始化失败: " + JSON.stringify(e));
-    }
-  }
-
-  async releaseCamera() {
-    try {
-      if (this.captureSession) {
-        await this.captureSession.stop();
-        await this.captureSession.release();
-        this.captureSession = undefined;
-      }
-      if (this.cameraInput) {
-        await this.cameraInput.close();
-        this.cameraInput = undefined;
-      }
-      if (this.previewOutput) {
-        await this.previewOutput.release();
-        this.previewOutput = undefined;
-      }
-      console.info("相机硬件资源已释放");
-    } catch (e) {
-      console.error("释放相机资源失败: " + JSON.stringify(e));
-    }
+    }).catch((err: Object) => console.error(JSON.stringify(err)));
   }
 
   build() {
     XComponent({
-      id: 'cameraPreview_' + Math.random().toString(),
+      id: 'cameraPreview_' + Math.random().toString(), // 保留你的原版写法
       type: 'surface',
       controller: this.xComponentController
     })
       .width('100%')
       .height('100%')
       .onLoad(() => {
-        // 画布加载完成后，记录 ID，并判断是否需要开启镜头
         this.surfaceId = this.xComponentController.getXComponentSurfaceId();
-        if (this.isActive) {
-          this.initCamera();
-        }
+        this.initCamera();
       })
   }
 }
