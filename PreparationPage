@@ -12,7 +12,7 @@ export struct PreparationPage {
   @StorageProp('isRealMode') isRealMode: boolean = true;
   @State hasCameraPermission: boolean = false;
 
-  @State isCameraActive: boolean = true;
+  @State isCameraActive: boolean = true; // 默认就是开，拒绝灰屏
 
   onPageShow() {
     this.isCameraActive = true;
@@ -85,8 +85,10 @@ export struct PreparationPage {
           Blank()
 
           Stack({ alignContent: Alignment.Bottom }) {
-            // 【核心修复】：去掉 if 判断，直接用 isActive 控制，彻底解决灰屏
-            MiniCameraPreview({ isActive: this.isCameraActive })
+            // 你最原始的包裹写法
+            if (this.isCameraActive) {
+              MiniCameraPreview()
+            }
 
             Text("请正对摄像头")
               .fontSize(8)
