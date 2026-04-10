@@ -1,0 +1,546 @@
+import { AppTheme } from '../constants/AppTheme'
+import { RouterModule } from '../utils/RouterModule'
+import abilityAccessCtrl from '@ohos.abilityAccessCtrl';
+import common from '@ohos.app.ability.common';
+import { speechRecognizer } from '@kit.CoreSpeechKit';
+import { camera } from '@kit.CameraKit';
+import { audio } from '@kit.AudioKit'; // 🚨【终极修复】：引入音频录制Kit！充当引擎的耳朵！
+
+// ==========================================
+// 全局串行任务锁，防止相机操作死锁
+// ==========================================
+let cameraTaskQueue: Promise<void> = Promise.resolve();
+
+@Component
+export struct MiniCameraPreview {
+  @Prop @Watch('onActiveChange') isActive: boolean = false;
+  @Prop componentId: string = 'default_cam';
+
+  private xComponentController: XComponentController = new XComponentController();
+  private surfaceId: string = '';
+
+  private cameraManager?: camera.CameraManager;
+  private captureSession?: camera.Session;
+  private cameraInput?: camera.CameraInput;
+  private previewOutput?: camera.PreviewOutput;
+
+  private isAlive: boolean = true;
+  private uniqueId: string = 'cam_' + Math.floor(Math.random() * 1000000).toString();
+
+  aboutToAppear() {
+    this.isAlive = true;
+  }
+
+  aboutToDisappear() {
+    this.isAlive = false;
+    this.queueReleaseCamera();
+  }
+
+  onActiveChange() {
+    if (this.isActive) {
+      this.queueInitCamera();
+    } else {
+      this.queueReleaseCamera();
+    }
+  }
+
+  queueInitCamera() {
+    cameraTaskQueue = cameraTaskQueue.then(async () => {
+      if (!this.isAlive || !this.isActive || !this.surfaceId) return;
+      await this._internalInitCamera();
+    }).catch((err: Error) => {
+      console.error(`[Camera Queue] Init Error: ${err.message}`);
+    });
+  }
+
+  queueReleaseCamera() {
+    cameraTaskQueue = cameraTaskQueue.then(async () => {
+      await this._internalReleaseCamera();
+    }).catch((err: Error) => {
+      console.error(`[Camera Queue] Release Error: ${err.message}`);
+    });
+  }
+
+  private async _internalInitCamera() {
+    await this._internalReleaseCamera();
+
+    try {
+      this.cameraManager = camera.getCameraManager(getContext(this));
+      let cameras: camera.CameraDevice[] = this.cameraManager.getSupportedCameras();
+      if (!cameras || cameras.length === 0) return;
+
+      let frontCamera: camera.CameraDevice | undefined = cameras.find((c: camera.CameraDevice) => c.cameraPosition === camera.CameraPosition.CAMERA_POSITION_FRONT);
+      if (!frontCamera) {
+        frontCamera = cameras[0];
+      }
+
+      this.cameraInput = this.cameraManager.createCameraInput(frontCamera);
+      await this.cameraInput.open();
+
+      let capability: camera.CameraOutputCapability = this.cameraManager.getSupportedOutputCapability(frontCamera, camera.SceneMode.NORMAL_PHOTO);
+      let previewProfile: camera.Profile = capability.previewProfiles[0];
+
+      this.previewOutput = this.cameraManager.createPreviewOutput(previewProfile, this.surfaceId);
+
+      this.captureSession = this.cameraManager.createSession(camera.SceneMode.NORMAL_PHOTO);
+      this.captureSession.beginConfig();
+      this.captureSession.addInput(this.cameraInput);
+      this.captureSession.addOutput(this.previewOutput);
+      await this.captureSession.commitConfig();
+      await this.captureSession.start();
+
+    } catch (err) {
+      let e = err as Error;
+      console.error(`[Camera ${this.componentId}] 启动失败: ${e.message}`);
+      await this._internalReleaseCamera();
+    }
+  }
+
+  private async _internalReleaseCamera() {
+    try {
+      if (this.captureSession) {
+        await this.captureSession.stop();
+        await this.captureSession.release();
+      }
+      if (this.cameraInput) {
+        await this.cameraInput.close();
+      }
+      if (this.previewOutput) {
+        await this.previewOutput.release();
+      }
+    } catch (err) {
+      let e = err as Error;
+      console.error("释放失败: " + e.message);
+    } finally {
+      this.captureSession = undefined;
+      this.cameraInput = undefined;
+      this.previewOutput = undefined;
+    }
+  }
+
+  build() {
+    XComponent({
+      id: this.uniqueId,
+      type: 'surface',
+      controller: this.xComponentController
+    })
+      .width('100%')
+      .height('100%')
+      .onLoad(() => {
+        this.surfaceId = this.xComponentController.getXComponentSurfaceId();
+        if (this.isActive) {
+          this.queueInitCamera();
+        }
+      })
+  }
+}
+
+@Entry
+@Component
+export struct StudyInterviewPage {
+  @State isCameraActive: boolean = true;
+
+  onPageShow() {
+    this.isCameraActive = true;
+  }
+
+  onPageHide() {
+    this.isCameraActive = false;
+  }
+
+  @StorageLink('currentQuestionIndex') @Watch('onIndexChange') currentIndex: number = 0;
+  @State questions: string[] = [
+    "请用一分钟的时间，做一下自我介绍。",
+    "在你的过往经历中，遇到过最大的困难是什么？你是如何克服的？",
+    "请谈谈你对所应聘岗位的理解，以及你的核心优势。",
+    "如果团队内部出现了严重的分歧，你会如何处理？",
+    "请分享一个你主动学习新技能并将其应用到实际工作中的例子。"
+  ];
+  @State countdown: number = 10;
+  @State isAnswerReady: boolean = false;
+  @State barHeights: number[] = [0.2, 0.3, 0.5, 0.3, 0.2, 0.15];
+  @State audioFrameIndex: number = 0;
+  private audioFramesData: number[][] = [
+    [0.2, 0.3, 0.5, 0.3, 0.2, 0.15],
+    [0.3, 0.5, 0.7, 0.5, 0.3, 0.2],
+    [0.5, 0.7, 0.9, 0.7, 0.5, 0.3],
+    [0.4, 0.6, 0.8, 0.6, 0.4, 0.3],
+    [0.3, 0.5, 0.7, 0.5, 0.3, 0.2],
+    [0.2, 0.3, 0.5, 0.3, 0.2, 0.15]
+  ];
+
+  @State transcriptText: string = "正在准备面试环境...";
+  private finalTranscript: string = "";
+
+  private timerId: number = -1;
+  private voiceTimerId: number = -1;
+
+  private asrEngine: speechRecognizer.SpeechRecognitionEngine | null = null;
+  private currentSessionId: string = "session_default";
+
+  // 🚨 录音机实例：负责收集物理麦克风的声音
+  private audioCapturer: audio.AudioCapturer | null = null;
+
+  aboutToAppear() {
+    this.requestMicrophonePermissionAndStart();
+  }
+
+  aboutToDisappear() {
+    this.clearAllTimers();
+    this.stopASREngine();
+  }
+
+  async requestMicrophonePermissionAndStart() {
+    try {
+      let atManager = abilityAccessCtrl.createAtManager();
+      let context = getContext(this) as common.UIAbilityContext;
+      let requestResult = await atManager.requestPermissionsFromUser(context, ['ohos.permission.MICROPHONE']);
+
+      if (requestResult.authResults[0] === 0) {
+        this.startInterviewLogic();
+      } else {
+        this.transcriptText = "麦克风权限被拒绝，无法录音。";
+      }
+    } catch (err) {
+      console.error("[Permission] 权限异常");
+    }
+  }
+
+  startInterviewLogic() {
+    this.clearAllTimers();
+    this.stopASREngine();
+
+    this.timerId = setInterval(() => {
+      if (this.countdown > 0) {
+        this.countdown--;
+      } else {
+        this.isAnswerReady = true;
+      }
+    }, 1000);
+
+    this.voiceTimerId = setInterval(() => {
+      this.audioFrameIndex = (this.audioFrameIndex + 1) % this.audioFramesData.length;
+      this.barHeights = this.audioFramesData[this.audioFrameIndex];
+    }, 150);
+
+    this.startRealASREngine();
+  }
+
+  async startRealASREngine() {
+    this.transcriptText = "【系统】正在初始化长语音引擎...";
+    this.finalTranscript = "";
+
+    try {
+      // 1. 初始化 ASR 大脑
+      let initParamsInfo: speechRecognizer.CreateEngineParams = {
+        language: 'zh-CN',
+        online: 1,
+        // 🚨【关键修改 1】：必须使用 "long"，否则说一句话就会报 1002200010
+        extraParams: { "locate": "CN", "recognizerMode": "long" }
+      };
+
+      this.asrEngine = await speechRecognizer.createEngine(initParamsInfo);
+
+      let listener: speechRecognizer.RecognitionListener = {
+        onStart: (sessionId: string, eventMessage: string) => {
+          this.transcriptText = "🎤 录音中，请开始面试回答...";
+        },
+        onEvent: (sessionId: string, eventCode: number, eventMessage: string) => {
+          // 可以在这里监听事件
+        },
+        onResult: (sessionId: string, result: speechRecognizer.SpeechRecognitionResult) => {
+          // 实时更新显示
+          if (result.isFinal) {
+            this.finalTranscript += result.result;
+            this.transcriptText = this.finalTranscript;
+          } else {
+            this.transcriptText = this.finalTranscript + result.result;
+          }
+        },
+        onComplete: (sessionId: string, eventMessage: string) => {
+          console.info(`[ASR] 正常完成`);
+        },
+        onError: (sessionId: string, errorCode: number, errorMessage: string) => {
+          // 🚨 捕获到错误时，建议停止录音机，防止持续报错
+          console.error(`[ASR] 错误码: ${errorCode}, 信息: ${errorMessage}`);
+          if (errorCode === 1002200010) {
+            this.transcriptText = "【提示】语音流中断，正在尝试重连...";
+            // 如果报错，可以尝试重新触发一次逻辑
+          } else {
+            this.transcriptText = `❌ 识别异常(${errorCode})`;
+          }
+          this.stopASREngine();
+        }
+      };
+
+      this.asrEngine.setListener(listener);
+      this.currentSessionId = Date.now().toString();
+
+      // 2. 准备录音机
+      let audioStreamInfo: audio.AudioStreamInfo = {
+        samplingRate: audio.AudioSamplingRate.SAMPLE_RATE_16000,
+        channels: audio.AudioChannel.CHANNEL_1,
+        sampleFormat: audio.AudioSampleFormat.SAMPLE_FORMAT_S16LE,
+        encodingType: audio.AudioEncodingType.ENCODING_TYPE_RAW
+      };
+
+      let audioCapturerInfo: audio.AudioCapturerInfo = {
+        source: audio.SourceType.SOURCE_TYPE_VOICE_RECOGNITION, // 🚨【优化】：使用专门为语音识别优化的音源
+        capturerFlags: 0
+      };
+
+      this.audioCapturer = await audio.createAudioCapturer({
+        streamInfo: audioStreamInfo,
+        capturerInfo: audioCapturerInfo
+      });
+
+      // 3. 实时喂数据，增加长度校验
+      this.audioCapturer.on('readData', (buffer: ArrayBuffer) => {
+        // 🚨【关键修改 2】：只有引擎存在且 buffer 有效时才写入
+        if (this.asrEngine && buffer.byteLength > 0) {
+          try {
+            let uint8Array = new Uint8Array(buffer);
+            this.asrEngine.writeAudio(this.currentSessionId, uint8Array);
+          } catch (err) {
+            console.error("写入音频流失败");
+          }
+        }
+      });
+
+      // 在 StartParams 中增加时长和停顿容忍度
+      let startParams: speechRecognizer.StartParams = {
+        sessionId: this.currentSessionId,
+        audioInfo: { audioType: 'pcm', sampleRate: 16000, soundChannel: 1, sampleBit: 16 },
+        extraParams: {
+          "recognitionMode": 1,        // 1 代表长语音模式（必须开启）
+          "maxAudioDuration": 60000,   // 🚨 设置最大时长为 60,000ms (1分钟)
+          "vadBegin": 20000,           // 允许用户在开始前最多沉默 20 秒
+          "vadEnd": 5000,              // 🚨 允许用户中间停顿 5 秒，不间断输出
+        }
+      };
+
+      this.asrEngine.startListening(startParams);
+
+      // 5. 启动录音机
+      await this.audioCapturer.start();
+
+    } catch (err) {
+      let e = err as Error;
+      this.transcriptText = `🚨 启动失败: ${e.message}`;
+    }
+  }
+
+  stopASREngine() {
+    // 1. 先关闭录音机（停止收音）
+    if (this.audioCapturer) {
+      try {
+        this.audioCapturer.stop();
+        this.audioCapturer.release();
+      } catch (err) {
+        console.error("录音机释放失败");
+      } finally {
+        this.audioCapturer = null;
+      }
+    }
+
+    // 2. 再关闭 ASR 引擎
+    if (this.asrEngine) {
+      try {
+        this.asrEngine.finish(this.currentSessionId); // 告诉云端：我喂完数据了
+        this.asrEngine.cancel(this.currentSessionId);
+        this.asrEngine.shutdown();
+      } catch(err) {
+        console.error("ASR引擎释放失败");
+      } finally {
+        this.asrEngine = null;
+      }
+    }
+  }
+
+  clearAllTimers() {
+    clearInterval(this.timerId);
+    clearInterval(this.voiceTimerId);
+  }
+
+  nextQuestion() {
+    if (this.currentIndex < this.questions.length - 1) {
+      this.currentIndex++;
+    } else {
+      this.isCameraActive = false;
+      RouterModule.clearAndPush('InterviewProReportPage');
+    }
+  }
+
+  onIndexChange() {
+    this.countdown = 10;
+    this.isAnswerReady = false;
+    this.transcriptText = "";
+    this.finalTranscript = "";
+    this.startInterviewLogic();
+  }
+
+  build() {
+    Column() {
+      Row() {
+        Row() {
+          Image($r("app.media.left"))
+            .width(12)
+            .height(24)
+            .objectFit(ImageFit.Contain)
+        }
+        .padding({ left: 16, right: 16, top: 10, bottom: 10 })
+        .onClick(() => {
+          this.isCameraActive = false;
+          RouterModule.popToName('Page9');
+        })
+
+        Blank()
+
+        Row() {
+          Text("学习模式")
+            .fontSize(10)
+            .fontWeight(FontWeight.Medium)
+            .fontColor('#333333')
+        }
+        .padding({ left: 16, right: 16, top: 6, bottom: 6 })
+        .backgroundColor(AppTheme.PrimaryYellow)
+        .borderRadius(16)
+        .margin({ right: 16 })
+      }
+      .width('100%')
+      .height(44)
+      .alignItems(VerticalAlign.Center)
+      .margin({ bottom: 8 })
+
+      Stack({ alignContent: Alignment.TopStart }) {
+        if (this.isCameraActive) {
+          MiniCameraPreview({ isActive: this.isCameraActive, componentId: 'study_cam' })
+            .width('100%')
+            .height('100%')
+        }
+
+        Row() {
+          Image($r("app.media.camera")).width(20).height(20)
+        }
+        .width(40).height(40).backgroundColor('rgba(255,255,255,0.7)').borderRadius(20)
+        .justifyContent(FlexAlign.Center).margin({ top: 16, left: 16 })
+
+        Row() {
+          Text("❤️").fontSize(18).margin({ right: 4 })
+          Text("86").fontSize(20).fontWeight(FontWeight.Bold).fontColor(Color.Black)
+          Text(" BPM").fontSize(10).fontColor('#666666').margin({ top: 6 })
+        }
+        .padding({ left: 12, right: 12, top: 8, bottom: 8 })
+        .backgroundColor('rgba(255,255,255,0.8)').borderRadius(20)
+        .shadow({ radius: 10, color: 'rgba(0,0,0,0.1)', offsetY: 4 }).position({ right: 16, top: 16 })
+      }
+      .width('calc(100% - 32vp)')
+      .layoutWeight(4)
+      .margin({ bottom: 16 })
+      .borderRadius(24)
+      .clip(true)
+      .backgroundColor('#E8E8E8')
+
+      Column() {
+        Column() {
+          Text(`${this.questions[this.currentIndex]}`)
+            .fontSize(14)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(AppTheme.TextBlack)
+            .width('100%')
+            .backgroundColor(Color.White)
+            .borderRadius(22)
+            .padding({ left: 14, top: 8, bottom: 8, right: 20 })
+        }
+        .width('100%')
+        .padding(2)
+        .borderRadius(24)
+        .linearGradient({
+          angle: 90,
+          colors: [
+            ['#FF3434', 0], ['#FFE600', 0.16], ['#37FF00', 0.33],
+            ['#00BBFF', 0.5], ['#006AFF', 0.66], ['#4000FF', 0.83], ['#FF00EE', 1]
+          ]
+        })
+        .margin({ bottom: 16 })
+
+        Column() {
+          Text(this.transcriptText)
+            .fontSize(12)
+            .fontColor('#000000')
+            .lineHeight(16)
+            .width('100%')
+        }
+        .width('85%')
+        .alignSelf(ItemAlign.End)
+        .constraintSize({ minHeight: 120 })
+        .backgroundColor('#EEEEEE')
+        .borderRadius({ topLeft: 16, topRight: 16, bottomLeft: 16, bottomRight: 16 })
+        .padding(10)
+        .alignItems(HorizontalAlign.Start)
+
+        Blank()
+
+        Stack({ alignContent: Alignment.Center }) {
+          Stack({ alignContent: Alignment.Center }) {
+            Image($r("app.media.6666")).width('100%').height('100%').objectFit(ImageFit.Contain).opacity(0.95)
+
+            Row() {
+              Column().width(3).height(this.barHeights[0] * 10).borderRadius(5).backgroundColor('#FBFBFB').margin({ left: 1, right: 1 })
+              Column().width(3).height(this.barHeights[1] * 10).borderRadius(5).backgroundColor('#FBFBFB').margin({ left: 1, right: 1 })
+              Column().width(3).height(this.barHeights[2] * 10).borderRadius(5).backgroundColor('#FBFBFB').margin({ left: 1, right: 1 })
+              Column().width(3).height(this.barHeights[3] * 10).borderRadius(5).backgroundColor('#FBFBFB').margin({ left: 1, right: 1 })
+              Column().width(3).height(this.barHeights[4] * 10).borderRadius(5).backgroundColor('#FBFBFB').margin({ left: 1, right: 1 })
+              Column().width(3).height(this.barHeights[5] * 10).borderRadius(5).backgroundColor('#FBFBFB').margin({ left: 1, right: 1 })
+            }
+            .width(110).height(100).padding({ top: 5, bottom: 5 }).justifyContent(FlexAlign.Center)
+          }
+          .width(130).height(100)
+
+          Row() {
+            Button("跳过")
+              .width(56).height(24).fontSize(10).fontWeight(FontWeight.Medium).fontColor('#575757')
+              .backgroundColor(Color.White).border({ width: 2, color: '#B9B9B9' })
+              .onClick(() => {
+                this.nextQuestion();
+              })
+          }
+          .width('100%').height('100%').justifyContent(FlexAlign.Start).alignItems(VerticalAlign.Center)
+          .hitTestBehavior(HitTestMode.Transparent)
+
+          Row() {
+            Stack({ alignContent: Alignment.Bottom }) {
+              if (this.isAnswerReady) {
+                Button("提示")
+                  .width(56).height(24).fontSize(10).fontWeight(FontWeight.Medium).padding({ left: 5, right: 5 })
+                  .fontColor('#000000').backgroundColor(AppTheme.PrimaryYellow).offset({ y: -32 })
+                  .onClick(() => {
+                    this.isCameraActive = false;
+                    RouterModule.push('AnswerPage');
+                  })
+              }
+
+              Button(!this.isAnswerReady ? this.countdown.toString() : (this.currentIndex === this.questions.length - 1 ? "看报告" : "答完了"))
+                .width(56).height(24).fontSize(10).fontWeight(FontWeight.Medium).padding({ left: 5, right: 5 })
+                .fontColor(Color.White)
+                .backgroundColor(this.isAnswerReady ? '#007DFF' : '#B2B2B2')
+                .border({ width: this.isAnswerReady ? 2 : 0, color: '#007DFF' })
+                .onClick(() => {
+                  if (this.isAnswerReady) {
+                    this.nextQuestion();
+                  }
+                })
+            }
+          }
+          .width('100%').height('100%').justifyContent(FlexAlign.End).alignItems(VerticalAlign.Center)
+          .hitTestBehavior(HitTestMode.Transparent)
+
+        }
+        .width('100%').height(80).margin({ top: 16, bottom: 8 })
+
+      }
+      .width('100%').layoutWeight(6).backgroundColor(Color.White).borderRadius({ topLeft: 24, topRight: 24 }).padding({ left: 16, right: 16, top: 16, bottom: 5 })
+    }
+    .width('100%').height('100%').backgroundColor('#F7F8FA').expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+  }
+}
