@@ -1,117 +1,201 @@
 import { AppTheme } from "../constants/AppTheme"
 
-@Component
+@Entry
+@Component // 作为 Tab 的子组件，通常不需要 @Entry，如果您的父组件需要这里有 @Entry 请保留
 export struct Homepage {
   // 快速面试：当前阶段使用本地假数据
   private joblist: string[] = ["前端工程师", "后端工程师", "前端工程师", "前端工程师"]
 
   // 上次测评：当前阶段使用本地假数据
   private lastJob: string = "前端工程师"
-  private lastCompany: string = "拼多多"
-  private lastRound: string = "第2轮"
-  private lastInterviewType: string = "常规面"
   private lastDate: string = "2天前"
   private lastTime: string = "20:32"
   private lastScore: string = "56"
 
+  // 为组件容器添加 onClick，保留交互性
+  private onCardClick(info: string) {
+    console.info(`点击卡片: ${info}`)
+  }
+
   @Builder
-  Jobbuilder(job: string,score:number) {
-    Column() {
-      Text(job)
-        .fontColor("#000000")
-        .fontSize(20)
-        .fontWeight(FontWeight.Medium)
-        .margin({
-          top: 12,
-          left: 12,
-          right: 12
-        })
-      Row()
-      {
-Text("互联网/人工智能")
-  .fontColor("#4E99F5")
-  .fontSize(11)
-  .fontWeight(FontWeight.Regular)
-  .padding(4)
-      }
-      .border({radius:10})
-      .backgroundColor("#D2D9F8")
-.margin({left:12,bottom:22})
-      Row() {
-        Text("匹配度")
-          .fontSize(11)
-          .fontWeight(FontWeight.Regular)
-          .layoutWeight(1)
-        Text(`${score}%`)
+  LastEvaluationCardBuilder(job: string, date: string, time: string, score: number, hasScore: boolean) {
+    Row() {
+      // 左侧信息区：职位与日期
+      Column() {
+        Text(job)
           .fontSize(17)
+          .fontColor(score >= 60 ? "#004887" : "#69000B")
           .fontWeight(FontWeight.Medium)
-          .fontColor('#000000')
+          .margin({ bottom: 4 })
+        Text(`${date} ${time}`)
+          .fontSize(11)
+          .fontColor(score >= 60 ? "#004887" : "#69000B")
+          .opacity(0.8)
       }
-      .width(128)
-      .alignItems(VerticalAlign.Bottom) // 底部对齐，让两段文字的底边在一个水平线上
-      .margin({ bottom: 2 ,left:12,right:12}) // 文字和进度条之间的间距
-      //进度条区域
-      Progress({ value: score, total: 100, type: ProgressType.Linear })
-        .width(128)
-        .color('#4E99F5') // 进度条蓝色部分
-        .backgroundColor('#787878') // 进度条灰色底槽部分
-        .style({ strokeWidth:4 }) // 设置进度条粗细，实现图中较粗的视觉效果
-        .margin({bottom:6,left:12,right:12})
-      Button("开始测试")
-        .width(128)
-        .height(24)
-        .fontColor("#000000")
-        .fontSize(12)
+      .alignItems(HorizontalAlign.Start)
+
+      // 右侧分数区
+      if (hasScore) {
+        Text() {
+          Span(score.toString())
+            .fontSize(34)
+          Span("分")
+            .fontSize(16)
+        }
+        .fontColor(score >= 60 ? "#004887" : "#69000B")
         .fontWeight(FontWeight.Regular)
-        .padding({
-          top: 4,
-          bottom: 4,
-          left: 40,
-          right: 40
-        })
-        .border({ radius: 15 })
-        .backgroundColor("#FFCC00")
-        .margin({ left: 12, right: 12, bottom: 12 })
+      }
     }
-    .alignItems(HorizontalAlign.Start)
-    .width(152)
-    .height(150)
+    .width(217)
+    .height(62)
+    .padding(12)
+    .justifyContent(FlexAlign.SpaceBetween)
+    .alignItems(VerticalAlign.Center)
     .border({ radius: 20 })
-    .linearGradient({
-      direction: GradientDirection.Bottom,
-      colors: [['#E5E5E5', 0.0], ['#FFFFFF', 1.0]]
+
+    // 动态径向渐变
+    .radialGradient({
+      center: ['100%', '0%'],
+      radius: '140%',
+      colors: score >= 60 ?
+        [
+          ['#4E93EB', 0.0],
+          ['#DFEBFF', 0.4],
+          ['#FFF9F9', 1.0]
+        ] :
+        [
+          ['#FF928B', 0.0],
+          ['#FFEEEE', 0.4],
+          ['#FFF9F9', 1.0]
+        ]
+    })
+
+    // 卡片投影
+    .shadow({
+      radius: 40,
+      color: score >= 60 ? 'rgba(78, 147, 235, 0.25)' : 'rgba(255, 146, 139, 0.25)',
+      offsetX: -22,
+      offsetY: 22
+    })
+
+    // 卡片自身边距
+    .margin({
+      left: 12,
+      right: 10,
+      top: 2,
+      bottom: 24
+    })
+    .onClick(() => {
+      this.onCardClick(`上次测评 ${job}`)
     })
   }
 
   @Builder
-  AbilityItem(title: string, score: number, maxScore: number = 10) {
+  Jobbuilder(job: string, score: number) {
     Column() {
+      // 1. 职位标题
+      Text(job)
+        .fontColor("#004887")
+        .fontSize(20)
+        .fontWeight(FontWeight.Medium)
+        .margin({ top: 16, left: 14, right: 14, bottom: 6 })
+
+      // 2. 行业标签
       Row() {
-        Text(title)
-          .fontColor("#FFFFFF")
-          .fontSize(15)
+        Text("互联网/人工智能")
+          .fontColor("#3872AB")
+          .fontSize(11)
           .fontWeight(FontWeight.Regular)
-        Text(score.toFixed(1))
-          .fontColor("#FFFFFF")
-          .fontSize(15)
+          .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+      }
+      .backgroundColor("rgba(255, 255, 255, 0.6)")
+      .border({ radius: 10 })
+      .margin({ left: 14, bottom: 22 })
+
+      Blank()
+
+      // 3. 匹配度文本行
+      Row() {
+        Text("能力匹配度")
+          .fontSize(11)
+          .fontWeight(FontWeight.Medium)
+          .fontColor("#004887")
+          .margin({ bottom: 4 })
+
+        Text(`${score}%`)
+          .fontSize(17)
+          .fontWeight(FontWeight.Medium)
+          .fontColor("#004887")
       }
       .width('100%')
+      .padding({ left: 14, right: 14 })
       .justifyContent(FlexAlign.SpaceBetween)
+      .alignItems(VerticalAlign.Bottom)
       .margin({ bottom: 4 })
 
-      Progress({ value: score, total: maxScore, type: ProgressType.Linear })
+      // 4. 进度条
+      Progress({ value: score, total: 100, type: ProgressType.Linear })
         .width('100%')
-        .color("#4E99F5")
-        .backgroundColor("#787878")
-        .style({ strokeWidth: 6 })
+        .padding({ left: 14, right: 14 })
+        .color('#4E99F5')
+        .backgroundColor('#DFE2E8')
+        .style({ strokeWidth: 3 })
+        .margin({ bottom: 6 })
+
+      // 5. 底部按钮
+      Button("开始测试")
+        .width(128)
+        .height(30)
+        .fontColor("#000000")
+        .fontSize(12)
+        .fontWeight(FontWeight.Medium)
+        .border({ radius: 16 })
+        .backgroundColor("#FFD709")
+        .margin({ bottom: 14, left: 12, right: 12 })
+        .onClick(() => {
+          this.onCardClick(`开始测试 ${job}`)
+        })
     }
-    .width('100%')
-    .padding({ left: 12, right: 12 })
+    .alignItems(HorizontalAlign.Start)
+    .width(152)
+    .height(160)
+    .border({ radius: 20 })
+    .padding({ left: 0, right: 0 })
+
+    // 6. 径向渐变
+    .radialGradient({
+      center: ['100%', '0%'],
+      radius: '140%',
+      colors: [
+        ['#4E93EB', 0.0],
+        ['#DFEBFF', 0.4],
+        ['#FFF9F9', 1.0]
+      ]
+    })
+
+    // 7. 蓝色卡片投影
+    .shadow({
+      radius: 40, // 聚拢模糊度，效果更真实
+      color: 'rgba(88, 152, 236, 0.25)',
+      offsetX: -22, // 优化偏移方向，防止全跑偏到左边
+      offsetY: 22
+    })
+
+    // 🌟 补充卡片自身边距，给外部阴影留出防裁切呼吸空间
+    .margin({
+      left: 12,
+      right: 10,
+      top: 2,
+      bottom: 24
+    })
+    .onClick(() => {
+      this.onCardClick(`快速面试 ${job}`)
+    })
   }
 
   build() {
     Column() {
-      // 顶部面试官
+      // --- 顶部广告 ---
       Row() {
         Image($r("app.media.01"))
           .margin({ left: 12, top: 8, bottom: 8 })
@@ -129,13 +213,13 @@ Text("互联网/人工智能")
             .fontWeight(FontWeight.Regular)
         }
         .alignItems(HorizontalAlign.Start)
-        .margin({ left: 7, top: 8, bottom: 8})
+        .margin({ left: 7, top: 8, bottom: 8 })
         .layoutWeight(1)
+
         Row() {
           Image($r("app.media.02"))
             .width(7.22)
             .height(13.06)
-
             .fillColor("#000000")
         }
         .backgroundColor("#66FFFFFF")
@@ -146,167 +230,97 @@ Text("互联网/人工智能")
         .width(30)
         .border({ radius: 145 })
         .margin({ right: 8, top: 9.5, bottom: 9.5 })
-
       }
-      .width("100%")
+      .width("calc(100% - 32vp)") // 计算减去左右 margin 的实际宽度
       .backgroundColor(AppTheme.PrimaryYellow)
       .height(50)
-      .margin({  bottom: 22 })
+      .margin({ top: 16, bottom: 22, left: 16, right: 16 }) // 独立设置左右边距
       .border({ radius: 25 })
 
-      // 上次测评
-      Column() {
-        Text("上次测评")
-          .fontColor("#000000")
-          .fontSize(22)
-          .fontWeight(FontWeight.Medium)
-          .margin({ bottom: 8 })
 
-        Row() {
+      // --- 中间内容区域 ---
+      Scroll() {
+        Column() {
+          // 1. 上次测评
           Column() {
-            Text(this.lastJob)
-              .fontSize(24)
-              .fontColor("#FFFFFF")
-              .fontWeight(FontWeight.Regular)
-              .margin({ bottom: 2 })
+            Text("上次测评")
+              .fontColor("#000000")
+              .fontSize(22)
+              .fontWeight(FontWeight.Medium)
+              .margin({ bottom: 8 })
+              .padding({ left: 16 }) // 独立设置标题边距
+              .width("100%")
 
-            Row() {
-              Text(this.lastCompany)
-                .fontSize(10)
-                .fontColor("#FFFFFF")
-                .fontWeight(FontWeight.Regular)
-                .margin({ right: 8 })
-              Text(this.lastRound)
-                .fontColor("#FFFFFF")
-                .fontWeight(FontWeight.Regular)
-                .fontSize(10)
-                .margin({ right: 8 })
-              Text(this.lastInterviewType)
-                .fontSize(10)
-                .fontColor("#FFFFFF")
-                .fontWeight(FontWeight.Regular)
+            List({ space: 0 }) {
+              ListItem() {
+                this.LastEvaluationCardBuilder(this.lastJob, this.lastDate, this.lastTime, parseInt(this.lastScore), true)
+              }
+              ListItem() {
+                this.LastEvaluationCardBuilder("前端工程师", "2天前", "20:32", 80, true)
+              }
             }
-            .width(106)
-            .height(12)
-            .margin({ bottom: 18 })
-
-            Row() {
-              Text("上次：")
-                .fontSize(10)
-                .fontColor("#FFFFFF")
-                .fontWeight(FontWeight.Regular)
-                .margin({ right: 2 })
-              Text(this.lastDate)
-                .fontColor("#FFFFFF")
-                .fontSize(10)
-                .fontWeight(FontWeight.Regular)
-                .margin({ right: 3 })
-              Text(this.lastTime)
-                .fontSize(10)
-                .fontColor("#FFFFFF")
-                .fontWeight(FontWeight.Regular)
-            }
-            .width(116)
-            .height(12)
+            .scrollBar(BarState.Off)
+            .listDirection(Axis.Horizontal)
+            .width("100%") // 列表占满屏幕宽
+            .padding({ left: 4 }) // 关键：4 + 卡片的左边距 12 = 16，与上方标题完美对齐
           }
-          .margin({ bottom: 12, top: 12, left: 12})
-          .layoutWeight(1)
           .alignItems(HorizontalAlign.Start)
+          .width("100%")
+          .margin({ bottom: 22 })
 
+          // 2. 快速面试
           Column() {
-            Row() {
-              Text(this.lastScore)
-                .fontSize(38)
-                .fontColor("#FFFFFF")
-                .fontWeight(FontWeight.Regular)
-                .margin({ right: 3 })
-              Text("分")
-                .fontSize(20)
-                .fontColor("#FFFFFF")
-                .fontWeight(FontWeight.Regular)
-                .padding({ top: 14 })
-            }
-            .alignItems(VerticalAlign.Bottom) // 底部对齐，让两段文字的底边在一个水平线上
-            .margin({ bottom: 22 })
-            .width(70)
-            .height(32)
+            Text("快速面试")
+              .fontSize(22)
+              .fontWeight(FontWeight.Medium)
+              .fontColor("#000000")
+              .margin({ bottom: 8 })
+              .padding({ left: 16 }) // 独立设置标题边距
+              .width("100%")
 
-            Button("查看完整报告")
-              .width(70)
-              .height(18)
-              .fontSize(10)
-              .fontWeight(FontWeight.Regular)
-              .border({ radius: 10 })
-              .padding({ left: 5, right: 5, top: 3, bottom: 3 })
+            // List 间距设为 0，因为卡片自身自带了 right: 10 的边距
+            List({ space: 0 }) {
+              ForEach(this.joblist, (item: string, index: number) => {
+                ListItem() {
+                  this.Jobbuilder(item, 60)
+                }
+              }, (item: string, index: number) => `${index}`)
+            }
+            .scrollBar(BarState.Off)
+            .listDirection(Axis.Horizontal)
+            .width("100%") // 列表占满屏幕宽
+            .padding({ left: 4 }) // 关键：4 + 卡片的左边距 12 = 16
           }
-          .width(70)
-          .height(72)
-          .margin({ bottom: 12, top: 12, right: 12 })
-        }
-        .width("100%")
-        .height(92)
-        .linearGradient({
-          direction: GradientDirection.Bottom,
-          colors: [['#FF0000', 0.0], ['#D40000', 1.0]]
-        })
-        .border({ radius: 20 })
-      }
-      .width("100%")
-      .height(136)
-      .alignItems(HorizontalAlign.Start)
-      .margin({ bottom: 22 })
+          .alignItems(HorizontalAlign.Start)
+          .width("100%")
+          .height(186)
+          .margin({ bottom: 22 })
 
-      // 快速面试
-      Column() {
-        Text("快速面试")
-          .fontSize(18)
-          .fontWeight(FontWeight.Medium)
-          .fontColor("#000000")
-          .margin({ bottom: 8 })
+          // 3. 数据概览
+          Column() {
+            Text("数据概览")
+              .fontSize(22)
+              .fontWeight(FontWeight.Medium)
+              .fontColor("#000000")
+              .margin({ bottom: 8 })
 
-        List({ space: 10 }) {
-          ForEach(this.joblist, (item: string, index: number) => {
-            ListItem() {
-              this.Jobbuilder(item,60)
+            Column() {
+              Image($r("app.media.CardList"))
             }
-          }, (item: string, index: number) => `${index}`)
-        }
-        .scrollBar(BarState.Off)
-        .listDirection(Axis.Horizontal)
-        .margin({right:-16})
-      }
-      .alignItems(HorizontalAlign.Start)
-      .width("100%")
-      .height(186)
-      .margin({ bottom: 22 })
-
-      // 能力状态
-      Column() {
-        Text("能力状态")
-          .fontSize(22)
-          .fontWeight(FontWeight.Medium)
-          .fontColor("#000000")
-          .margin({ bottom: 8 })
-
-        Column({ space: 4 }) {
-          this.AbilityItem("技术", 8.0)
-          this.AbilityItem("技术", 4.0)
-          this.AbilityItem("技术", 3.0)
-          this.AbilityItem("技术", 9.0)
+            .width("100%")
+          }
+          .padding({ left: 16}) // 只有静态卡片区需要全包围边距
+          .alignItems(HorizontalAlign.Start)
+          .width("100%")
+          .margin({ bottom: 20 })
         }
         .width("100%")
-        .height(170)
-        .border({ radius: 20 })
-        .backgroundColor("#2C2C2E")
-        .justifyContent(FlexAlign.Center)
-        .padding({ top: 5, bottom: 3 })
       }
-      .alignItems(HorizontalAlign.Start)
-      .width("100%")
-      .height(184)
+      .layoutWeight(1)
+      .scrollBar(BarState.Off)
     }
     .width("100%")
     .height("100%")
-    .padding({left:16,right:16})
+    // 🌟🌟🌟 这里移除了原来的 .padding({ left: 16, right: 16 }) 释放了屏幕边缘！
   }
 }
