@@ -1,19 +1,17 @@
 import { AppTheme } from '../constants/AppTheme'
 import { RouterModule } from '../utils/RouterModule'
+import abilityAccessCtrl from '@ohos.abilityAccessCtrl';
+import common from '@ohos.app.ability.common';
+import { speechRecognizer } from '@kit.CoreSpeechKit';
+import { audio } from '@kit.AudioKit';
 import { MiniCameraPreview } from './MiniCameraPreview';
 
 @Entry
 @Component
 export struct StudyInterviewPage {
-  @State isCameraActive: boolean = true; // 默认开！
-
-  onPageShow() {
-    this.isCameraActive = true;
-  }
-
-  onPageHide() {
-    this.isCameraActive = false;
-  }
+  // 🚨 强制重载的核心控制变量
+  @State forceMountCamera: boolean = true;
+  @State cameraKey: string = 'key_init';
 
   @StorageLink('currentQuestionIndex') @Watch('onIndexChange') currentIndex: number = 0;
   @State questions: string[] = [
@@ -28,60 +26,153 @@ export struct StudyInterviewPage {
   @State barHeights: number[] = [0.2, 0.3, 0.5, 0.3, 0.2, 0.15];
   @State audioFrameIndex: number = 0;
   private audioFramesData: number[][] = [
-    [0.2, 0.3, 0.5, 0.3, 0.2, 0.15],
-    [0.3, 0.5, 0.7, 0.5, 0.3, 0.2],
-    [0.5, 0.7, 0.9, 0.7, 0.5, 0.3],
-    [0.4, 0.6, 0.8, 0.6, 0.4, 0.3],
-    [0.3, 0.5, 0.7, 0.5, 0.3, 0.2],
-    [0.2, 0.3, 0.5, 0.3, 0.2, 0.15]
+    [0.2, 0.3, 0.5, 0.3, 0.2, 0.15], [0.3, 0.5, 0.7, 0.5, 0.3, 0.2],
+    [0.5, 0.7, 0.9, 0.7, 0.5, 0.3], [0.4, 0.6, 0.8, 0.6, 0.4, 0.3],
+    [0.3, 0.5, 0.7, 0.5, 0.3, 0.2], [0.2, 0.3, 0.5, 0.3, 0.2, 0.15]
   ];
-  @State transcriptText: string = "";
-  private defaultTranscript: string =
-    "这里是回答内容的实时语音转文字。我现在正在模拟用户的真实语音输入过程，伴随着你说话声音的起伏，下方的光晕波形也会随之产生真实的跳动感，10秒之后右侧的按钮就会亮起...";
+
+  @State transcriptText: string = "正在准备面试环境...";
+  private finalTranscript: string = "";
   private timerId: number = -1;
   private voiceTimerId: number = -1;
-  private charIndex: number = 0;
+  private asrEngine: speechRecognizer.SpeechRecognitionEngine | null = null;
+  private currentSessionId: string = "session_default";
+  private audioCapturer: audio.AudioCapturer | null = null;
+  @State isFirstLoad: boolean = true;
+
+  @State isCameraActive: boolean = false;
 
   aboutToAppear() {
-    this.startInterviewLogic();
+    let context = getContext(this) as common.UIAbilityContext;
+    setTimeout(() => {
+      this.isCameraActive = true; // 初次点亮
+      setTimeout(() => { this.safeStart(context); }, 100);
+    }, 500);
+  }
+
+  onPageShow() {
+    if (!this.isFirstLoad) {
+      let context = getContext(this) as common.UIAbilityContext;
+      setTimeout(() => {
+        this.isCameraActive = true;
+        setTimeout(() => { this.safeStart(context); }, 100);
+      }, 100);
+    }
+    this.isFirstLoad = false;
+  }
+
+  onPageHide() {
+    // 🚨 修复 2：去答案页时，千万不要把相机关掉！让它在底层保持常亮，
+    // 这样从答案页 pop 回来时，相机就是秒开的，0延迟！
+    // this.isCameraActive = false; // 将这行彻底注释掉或删掉
+
+    this.stopASREngine();
+    this.clearAllTimers();
   }
 
   aboutToDisappear() {
+    this.isCameraActive = false;
     this.clearAllTimers();
+    this.stopASREngine();
+  }
+
+  async safeStart(context: common.UIAbilityContext) {
+    try {
+      let atManager = abilityAccessCtrl.createAtManager();
+      let requestResult = await atManager.requestPermissionsFromUser(context, ['ohos.permission.MICROPHONE']);
+      if (requestResult.authResults[0] === 0) {
+        if (this.forceMountCamera) {
+          this.startInterviewLogic();
+        }
+      } else {
+        this.transcriptText = "麦克风权限被拒绝，无法录音。";
+      }
+    } catch (err) {
+      let e = err as Error;
+      this.transcriptText = `🚨 系统权限请求拦截: ${e.message}`;
+    }
   }
 
   startInterviewLogic() {
     this.clearAllTimers();
-
+    this.stopASREngine();
     this.timerId = setInterval(() => {
-      if (this.countdown > 0) {
-        this.countdown--;
-      } else {
-        this.isAnswerReady = true;
-      }
+      if (this.countdown > 0) { this.countdown--; } else { this.isAnswerReady = true; }
     }, 1000);
-
     this.voiceTimerId = setInterval(() => {
       this.audioFrameIndex = (this.audioFrameIndex + 1) % this.audioFramesData.length;
       this.barHeights = this.audioFramesData[this.audioFrameIndex];
-
-      if (this.charIndex < this.defaultTranscript.length) {
-        this.transcriptText += this.defaultTranscript[this.charIndex];
-        this.charIndex++;
-      }
     }, 150);
+    this.startRealASREngine();
+  }
+
+  async startRealASREngine() {
+    this.transcriptText = "【系统】正在初始化长语音引擎...";
+    this.finalTranscript = "";
+    try {
+      let initParamsInfo: speechRecognizer.CreateEngineParams = { language: 'zh-CN', online: 1, extraParams: { "locate": "CN", "recognizerMode": "long" } };
+      this.asrEngine = await speechRecognizer.createEngine(initParamsInfo);
+      let listener: speechRecognizer.RecognitionListener = {
+        onStart: (sessionId: string, eventMessage: string) => { this.transcriptText = "🎤 录音中，请开始面试回答..."; },
+        onEvent: (sessionId: string, eventCode: number, eventMessage: string) => {},
+        onResult: (sessionId: string, result: speechRecognizer.SpeechRecognitionResult) => {
+          if (result.isFinal) { this.finalTranscript += result.result; this.transcriptText = this.finalTranscript; }
+          else { this.transcriptText = this.finalTranscript + result.result; }
+        },
+        onComplete: (sessionId: string, eventMessage: string) => { console.info(`[ASR] 正常完成`); },
+        onError: (sessionId: string, errorCode: number, errorMessage: string) => {
+          if (errorCode === 1002200010) { this.transcriptText = "【提示】语音流中断，正在尝试重连..."; } else { this.transcriptText = `❌ 识别异常(${errorCode})`; }
+          this.stopASREngine();
+        }
+      };
+      this.asrEngine.setListener(listener);
+      this.currentSessionId = Date.now().toString();
+
+      let audioStreamInfo: audio.AudioStreamInfo = {
+        samplingRate: audio.AudioSamplingRate.SAMPLE_RATE_16000,
+        channels: audio.AudioChannel.CHANNEL_1,
+        sampleFormat: audio.AudioSampleFormat.SAMPLE_FORMAT_S16LE,
+        encodingType: audio.AudioEncodingType.ENCODING_TYPE_RAW
+      };
+      let audioCapturerInfo: audio.AudioCapturerInfo = {
+        source: audio.SourceType.SOURCE_TYPE_VOICE_RECOGNITION,
+        capturerFlags: 0
+      };
+      this.audioCapturer = await audio.createAudioCapturer({ streamInfo: audioStreamInfo, capturerInfo: audioCapturerInfo });
+
+      this.audioCapturer.on('readData', (buffer: ArrayBuffer) => {
+        if (this.asrEngine && buffer.byteLength > 0) {
+          try { let uint8Array = new Uint8Array(buffer); this.asrEngine.writeAudio(this.currentSessionId, uint8Array); } catch (err) {}
+        }
+      });
+
+      let startParams: speechRecognizer.StartParams = {
+        sessionId: this.currentSessionId, audioInfo: { audioType: 'pcm', sampleRate: 16000, soundChannel: 1, sampleBit: 16 },
+        extraParams: { "recognitionMode": 1, "maxAudioDuration": 60000, "vadBegin": 20000, "vadEnd": 5000 }
+      };
+      this.asrEngine.startListening(startParams);
+      await this.audioCapturer.start();
+
+    } catch (err) {
+      let e = err as Error; this.transcriptText = `🚨 启动失败: ${e.message}`;
+    }
+  }
+
+  stopASREngine() {
+    if (this.audioCapturer) { try { this.audioCapturer.stop(); this.audioCapturer.release(); } catch (err) {} finally { this.audioCapturer = null; } }
+    if (this.asrEngine) { try { this.asrEngine.finish(this.currentSessionId); this.asrEngine.cancel(this.currentSessionId); this.asrEngine.shutdown(); } catch(err) {} finally { this.asrEngine = null; } }
   }
 
   clearAllTimers() {
-    clearInterval(this.timerId);
-    clearInterval(this.voiceTimerId);
+    clearInterval(this.timerId); clearInterval(this.voiceTimerId);
   }
 
   nextQuestion() {
     if (this.currentIndex < this.questions.length - 1) {
-      this.currentIndex++; // 这里只需要加索引进入下一题
+      this.currentIndex++;
     } else {
-      RouterModule.clearAndPush('InterviewProReportPage');
+      this.forceMountCamera = false;
+      setTimeout(() => { RouterModule.clearAndPush('InterviewProReportPage'); }, 200);
     }
   }
 
@@ -89,135 +180,52 @@ export struct StudyInterviewPage {
     this.countdown = 10;
     this.isAnswerReady = false;
     this.transcriptText = "";
-    this.charIndex = 0;
-    this.startInterviewLogic();
+    this.finalTranscript = "";
+
+    if (this.forceMountCamera) {
+      this.startInterviewLogic();
+    }
   }
 
   build() {
     Column() {
       Row() {
-        Row() {
-          Image($r("app.media.left"))
-            .width(12)
-            .height(24)
-            .objectFit(ImageFit.Contain)
-        }
+        Row() { Image($r("app.media.left")).width(12).height(24).objectFit(ImageFit.Contain) }
         .padding({ left: 16, right: 16, top: 10, bottom: 10 })
         .onClick(() => {
-          RouterModule.popToName('Page9');
+          this.forceMountCamera = false;
+          setTimeout(() => { RouterModule.popToName('Page9'); }, 200);
         })
-
         Blank()
-
-        Row() {
-          Text("学习模式")
-            .fontSize(10)
-            .fontWeight(FontWeight.Medium)
-            .fontColor('#333333')
-        }
-        .padding({ left: 16, right: 16, top: 6, bottom: 6 })
-        .backgroundColor(AppTheme.PrimaryYellow)
-        .borderRadius(16)
-        .margin({ right: 16 })
-      }
-      .width('100%')
-      .height(44)
-      .alignItems(VerticalAlign.Center)
-      .margin({ bottom: 8 })
+        Row() { Text("学习模式").fontSize(10).fontWeight(FontWeight.Medium).fontColor('#333333') }
+        .padding({ left: 16, right: 16, top: 6, bottom: 6 }).backgroundColor(AppTheme.PrimaryYellow).borderRadius(16).margin({ right: 16 })
+      }.width('100%').height(44).alignItems(VerticalAlign.Center).margin({ bottom: 8 })
 
       Stack({ alignContent: Alignment.TopStart }) {
-        if (this.isCameraActive) {
-          MiniCameraPreview()
-            .width('100%')
-            .height('100%')
-        }
 
-        Row() {
-          Image($r("app.media.camera"))
-            .width(20)
-            .height(20)
-        }
-        .width(40)
-        .height(40)
-        .backgroundColor('rgba(255,255,255,0.7)')
-        .borderRadius(20)
-        .justifyContent(FlexAlign.Center)
-        .margin({ top: 16, left: 16 })
+        // 🚨 终极毁灭与重生挂载点
+        MiniCameraPreview({ isActive: this.isCameraActive, componentId: 'study_cam' })
 
-        Row() {
-          Text("❤️")
-            .fontSize(18)
-            .margin({ right: 4 })
-          Text("86")
-            .fontSize(20)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(Color.Black)
-          Text(" BPM")
-            .fontSize(10)
-            .fontColor('#666666')
-            .margin({ top: 6 })
-        }
-        .padding({ left: 12, right: 12, top: 8, bottom: 8 })
-        .backgroundColor('rgba(255,255,255,0.8)')
-        .borderRadius(20)
-        .shadow({ radius: 10, color: 'rgba(0,0,0,0.1)', offsetY: 4 })
-        .position({ right: 16, top: 16 })
-      }
-      .width('calc(100% - 32vp)')
-      .layoutWeight(4)
-      .margin({ bottom: 16 })
-      .borderRadius(24)
-      .clip(true)
-      .backgroundColor('#E8E8E8')
+
+        Row() { Image($r("app.media.camera")).width(20).height(20) }
+        .width(40).height(40).backgroundColor('rgba(255,255,255,0.7)').borderRadius(20).justifyContent(FlexAlign.Center).margin({ top: 16, left: 16 })
+        Row() { Text("❤️").fontSize(18).margin({ right: 4 }); Text("86").fontSize(20).fontWeight(FontWeight.Bold).fontColor(Color.Black); Text(" BPM").fontSize(10).fontColor('#666666').margin({ top: 6 }) }
+        .padding({ left: 12, right: 12, top: 8, bottom: 8 }).backgroundColor('rgba(255,255,255,0.8)').borderRadius(20).shadow({ radius: 10, color: 'rgba(0,0,0,0.1)', offsetY: 4 }).position({ right: 16, top: 16 })
+      }.width('calc(100% - 32vp)').layoutWeight(4).margin({ bottom: 16 }).borderRadius(24).clip(true).backgroundColor('#000000')
 
       Column() {
         Column() {
-          Text(`${this.questions[this.currentIndex]}`)
-            .fontSize(14)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(AppTheme.TextBlack)
-            .width('100%')
-            .backgroundColor(Color.White)
-            .borderRadius(22)
-            .padding({ left: 14, top: 8, bottom: 8, right: 20 })
-        }
-        .width('100%')
-        .padding(2)
-        .borderRadius(24)
-        .linearGradient({
-          angle: 90,
-          colors: [
-            ['#FF3434', 0], ['#FFE600', 0.16], ['#37FF00', 0.33],
-            ['#00BBFF', 0.5], ['#006AFF', 0.66], ['#4000FF', 0.83], ['#FF00EE', 1]
-          ]
-        })
-        .margin({ bottom: 16 })
+          Text(`${this.questions[this.currentIndex]}`).fontSize(14).fontWeight(FontWeight.Medium).fontColor(AppTheme.TextBlack).width('100%').backgroundColor(Color.White).borderRadius(22).padding({ left: 14, top: 8, bottom: 8, right: 20 })
+        }.width('100%').padding(2).borderRadius(24).linearGradient({ angle: 90, colors: [['#FF3434', 0], ['#FFE600', 0.16], ['#37FF00', 0.33], ['#00BBFF', 0.5], ['#006AFF', 0.66], ['#4000FF', 0.83], ['#FF00EE', 1]] }).margin({ bottom: 16 })
 
-        Column() {
-          Text(this.transcriptText)
-            .fontSize(12)
-            .fontColor('#000000')
-            .lineHeight(16)
-            .width('100%')
-        }
-        .width('85%')
-        .alignSelf(ItemAlign.End)
-        .constraintSize({ minHeight: 120 })
-        .backgroundColor('#EEEEEE')
-        .borderRadius({ topLeft: 16, topRight: 16, bottomLeft: 16, bottomRight: 16 })
-        .padding(10)
-        .alignItems(HorizontalAlign.Start)
+        Column() { Text(this.transcriptText).fontSize(12).fontColor('#000000').lineHeight(16).width('100%') }
+        .width('85%').alignSelf(ItemAlign.End).constraintSize({ minHeight: 120 }).backgroundColor('#EEEEEE').borderRadius({ topLeft: 16, topRight: 16, bottomLeft: 16, bottomRight: 16 }).padding(10).alignItems(HorizontalAlign.Start)
 
         Blank()
 
         Stack({ alignContent: Alignment.Center }) {
           Stack({ alignContent: Alignment.Center }) {
-            Image($r("app.media.6666"))
-              .width('100%')
-              .height('100%')
-              .objectFit(ImageFit.Contain)
-              .opacity(0.95)
-
+            Image($r("app.media.6666")).width('100%').height('100%').objectFit(ImageFit.Contain).opacity(0.95)
             Row() {
               Column().width(3).height(this.barHeights[0] * 10).borderRadius(5).backgroundColor('#FBFBFB').margin({ left: 1, right: 1 })
               Column().width(3).height(this.barHeights[1] * 10).borderRadius(5).backgroundColor('#FBFBFB').margin({ left: 1, right: 1 })
@@ -225,91 +233,32 @@ export struct StudyInterviewPage {
               Column().width(3).height(this.barHeights[3] * 10).borderRadius(5).backgroundColor('#FBFBFB').margin({ left: 1, right: 1 })
               Column().width(3).height(this.barHeights[4] * 10).borderRadius(5).backgroundColor('#FBFBFB').margin({ left: 1, right: 1 })
               Column().width(3).height(this.barHeights[5] * 10).borderRadius(5).backgroundColor('#FBFBFB').margin({ left: 1, right: 1 })
-            }
-            .width(110)
-            .height(100)
-            .padding({ top: 5, bottom: 5 })
-            .justifyContent(FlexAlign.Center)
-          }
-          .width(130)
-          .height(100)
+            }.width(110).height(100).padding({ top: 5, bottom: 5 }).justifyContent(FlexAlign.Center)
+          }.width(130).height(100)
 
           Row() {
-            Button("跳过")
-              .width(56)
-              .height(24)
-              .fontSize(10)
-              .fontWeight(FontWeight.Medium)
-              .fontColor('#575757')
-              .backgroundColor(Color.White)
-              .border({ width: 2, color: '#B9B9B9' })
-              .onClick(() => {
-                this.nextQuestion();
-              })
-          }
-          .width('100%')
-          .height('100%')
-          .justifyContent(FlexAlign.Start)
-          .alignItems(VerticalAlign.Center)
-          .hitTestBehavior(HitTestMode.Transparent)
+            Button("跳过").width(56).height(24).fontSize(10).fontWeight(FontWeight.Medium).fontColor('#575757').backgroundColor(Color.White).border({ width: 2, color: '#B9B9B9' })
+              .onClick(() => { this.nextQuestion(); })
+          }.width('100%').height('100%').justifyContent(FlexAlign.Start).alignItems(VerticalAlign.Center).hitTestBehavior(HitTestMode.Transparent)
 
           Row() {
             Stack({ alignContent: Alignment.Bottom }) {
               if (this.isAnswerReady) {
-                Button("提示")
-                  .width(56)
-                  .height(24)
-                  .fontSize(10)
-                  .fontWeight(FontWeight.Medium)
-                  .padding({ left: 5, right: 5 })
-                  .fontColor('#000000')
-                  .backgroundColor(AppTheme.PrimaryYellow)
-                  .offset({ y: -32 })
+                Button("提示").width(56).height(24).fontSize(10).fontWeight(FontWeight.Medium).padding({ left: 5, right: 5 }).fontColor('#000000').backgroundColor(AppTheme.PrimaryYellow).offset({ y: -32 })
                   .onClick(() => {
-                    RouterModule.push('AnswerPage');
+                    this.forceMountCamera = false;
+                    setTimeout(() => { RouterModule.push('AnswerPage'); }, 100);
                   })
               }
-
-              Button(
-                !this.isAnswerReady ? this.countdown.toString() :
-                  (this.currentIndex === this.questions.length - 1 ? "看报告" : "答完了")
-              )
-                .width(56)
-                .height(24)
-                .fontSize(10)
-                .fontWeight(FontWeight.Medium)
-                .padding({ left: 5, right: 5 })
-                .fontColor(Color.White)
-                .backgroundColor(this.isAnswerReady ? '#007DFF' : '#B2B2B2')
-                .border({ width: this.isAnswerReady ? 2 : 0, color: '#007DFF' })
-                .onClick(() => {
-                  if (this.isAnswerReady) {
-                    this.nextQuestion();
-                  }
-                })
+              Button(!this.isAnswerReady ? this.countdown.toString() : (this.currentIndex === this.questions.length - 1 ? "看报告" : "答完了"))
+                .width(56).height(24).fontSize(10).fontWeight(FontWeight.Medium).padding({ left: 5, right: 5 }).fontColor(Color.White).backgroundColor(this.isAnswerReady ? '#007DFF' : '#B2B2B2').border({ width: this.isAnswerReady ? 2 : 0, color: '#007DFF' })
+                .onClick(() => { if (this.isAnswerReady) { this.nextQuestion(); } })
             }
-          }
-          .width('100%')
-          .height('100%')
-          .justifyContent(FlexAlign.End)
-          .alignItems(VerticalAlign.Center)
-          .hitTestBehavior(HitTestMode.Transparent)
+          }.width('100%').height('100%').justifyContent(FlexAlign.End).alignItems(VerticalAlign.Center).hitTestBehavior(HitTestMode.Transparent)
 
-        }
-        .width('100%')
-        .height(80)
-        .margin({ top: 16, bottom: 8 })
+        }.width('100%').height(80).margin({ top: 16, bottom: 8 })
 
-      }
-      .width('100%')
-      .layoutWeight(6)
-      .backgroundColor(Color.White)
-      .borderRadius({ topLeft: 24, topRight: 24 })
-      .padding({ left: 16, right: 16, top: 16, bottom: 5 })
-    }
-    .width('100%')
-    .height('100%')
-    .backgroundColor('#F7F8FA')
-    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+      }.width('100%').layoutWeight(6).backgroundColor(Color.White).borderRadius({ topLeft: 24, topRight: 24 }).padding({ left: 16, right: 16, top: 16, bottom: 5 })
+    }.width('100%').height('100%').backgroundColor('#F7F8FA').expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 }
