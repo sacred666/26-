@@ -1,59 +1,133 @@
 import { AppTheme } from "../constants/AppTheme"
+import { RouterModule } from "../utils/RouterModule";
+
+interface GeneratedTypeLiteralInterface_1 {
+  name: string;
+  image: Resource;
+}
+
+interface GeneratedTypeLiteralInterface_2 {
+  name: string;
+  image: Resource;
+}
 
 @Entry
 @Component
 export struct interview {
+  // 默认选中林可欣简历 (索引0)
   @State selectedResumeIndex: number = 0;
-  private resumes: string[] = ["林可欣简历01.pdf", "陈泽宇简历01.pdf"];
+
+  private resumes: Array<GeneratedTypeLiteralInterface_1> = [
+    { name: "林可欣简历01.pdf", image: $r("app.media.lkx") },
+    { name: "陈泽宇简历01.pdf", image: $r("app.media.czy") }
+  ];
+
+  // 简单的点击事件占位
+  private onCardClick(info: string) {
+    console.info(`点击卡片: ${info}`)
+  }
 
   // --- 面试记录卡片 ---
   @Builder
-  joblist(job: string, score: string, date: string, time: string, color1: string, color2: string) {
-    Stack({ alignContent: Alignment.TopEnd }) {
+  LastEvaluationCardBuilder(job: string, date: string, time: string, score: number, hasScore: boolean) {
+    Row() {
       Column() {
-        Row() {
-          Text(job).fontSize(14).fontWeight(FontWeight.Medium).fontColor("#FFFFFF").margin({ right: 2 })
-          Row() {
-            Text(score).fontSize(20).fontWeight(FontWeight.Medium).fontColor("#FFFFFF")
-            Text("分").fontSize(10).fontWeight(FontWeight.Medium).fontColor("#FFFFFF").margin({ bottom: 3 })
-          }.alignItems(VerticalAlign.Bottom)
-        }.width("100%").margin({ top: 9, left: 6, bottom: 11 })
-        Blank()
-        Row() { Text(`上次 ${date}前 ${time}`).fontSize(6).fontColor("#FFFFFF") }.width("100%").margin({ bottom: 8, left: 10 })
+        Text(job)
+          .fontSize(17)
+          .fontColor(score >= 60 ? "#004887" : "#69000B")
+          .fontWeight(FontWeight.Medium)
+          .margin({ bottom: 4 })
+        Text(`${date} ${time}`)
+          .fontSize(11)
+          .fontColor(score >= 60 ? "#004887" : "#69000B")
+          .opacity(0.8)
       }
-      .linearGradient({ direction: GradientDirection.Bottom, colors: [[color1, 0.0], [color2, 1.0]] })
-      .border({ radius: 14 }).width(120).height(60)
+      .alignItems(HorizontalAlign.Start)
 
-      Stack() { Image($r("app.media.close")).width(16).height(16) }.position({ x: 110, y: -8 })
+      if (hasScore) {
+        Text() {
+          Span(score.toString()).fontSize(34)
+          Span("分").fontSize(16)
+        }
+        .fontColor(score >= 60 ? "#004887" : "#69000B")
+        .fontWeight(FontWeight.Regular)
+      }
     }
-    // 【细节优化】：加了一点底边距，防止阴影或被父级裁切
-    .margin({ right: 10, top: 10, bottom: 5 })
+    .width(217)
+    .height(62)
+    .padding(12)
+    .justifyContent(FlexAlign.SpaceBetween)
+    .alignItems(VerticalAlign.Center)
+    .border({ radius: 20 })
+    .radialGradient({
+      center: ['100%', '0%'],
+      radius: '140%',
+      colors: score >= 60 ?
+        [['#4E93EB', 0.0], ['#DFEBFF', 0.4], ['#FFF9F9', 1.0]] :
+        [['#FF928B', 0.0], ['#FFEEEE', 0.4], ['#FFF9F9', 1.0]]
+    })
+    .shadow({
+      radius: 40,
+      color: score >= 60 ? 'rgba(78, 147, 235, 0.25)' : 'rgba(255, 146, 139, 0.25)',
+      offsetX: -10,
+      offsetY: 16
+    })
+    .margin({ left: 12, right: 10, top: 2, bottom: 24 })
+    .onClick(() => { this.onCardClick(`面试记录 ${job}`) })
   }
 
   // --- 简历预览卡片 ---
   @Builder
-  ResumeCard(index: number, name: string) {
+  ResumeCard(index: number, name: string, imageRes: Resource) {
     Column() {
       Stack({ alignContent: Alignment.TopEnd }) {
-        Column() {}.width('100%').height(130).backgroundColor("#F2F2F2").borderRadius({ topLeft: 14, topRight: 14 })
-        if (this.selectedResumeIndex === index) {
-          Image($r("app.media.Group7")).width(22).height(22).margin({ top: 12, right: 12 })
-        } else {
-          Circle({ width: 22, height: 22 }).fill(Color.White).stroke('#007DFF').strokeWidth(1.5).margin({ top: 12, right: 12 })
+        Column() {
+          Image(imageRes)
+            .width('82%')
+            .height(116)
+            .margin({ top: 14 })
+            .objectFit(ImageFit.Contain)
+            .backgroundColor(Color.White)
+            .shadow({ radius: 5, color: 'rgba(0,0,0,0.08)', offsetY: 2 })
         }
-      }.backgroundColor("#F2F2F2").width('100%')
+        .width('100%')
+        .height(130)
+        .backgroundColor("#F2F4F7")
+        .borderRadius({ topLeft: 14, topRight: 14 })
+
+        if (this.selectedResumeIndex === index) {
+          Image($r("app.media.Group7")).width(22).height(22).margin({ top: 10, right: 10 })
+        } else {
+          Circle({ width: 22, height: 22 }).fill(Color.White).stroke('#007DFF').strokeWidth(1.5).margin({ top: 10, right: 10 })
+        }
+      }.width('100%')
 
       Divider().color('#F5F5F5').strokeWidth(1)
 
       Column() {
-        if (index === 0) { Text("上次使用").fontSize(11).fontColor('#999999').margin({ bottom: 4 }) }
-        Text(name).fontSize(13).fontWeight(FontWeight.Medium).fontColor('#000000').maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
-      }.width('100%').height(70).alignItems(HorizontalAlign.Start).justifyContent(FlexAlign.Center).padding({ left: 12, right: 12 })
+        if (index === 0) {
+          Text("上次使用").fontSize(11).fontColor('#999999').margin({ bottom: 4 })
+        } else {
+          Text(" ").fontSize(11).margin({ bottom: 4 })
+        }
+        Text(name)
+          .fontSize(13)
+          .fontWeight(FontWeight.Medium)
+          .fontColor('#000000')
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      }
+      .width('100%')
+      .height(65)
+      .alignItems(HorizontalAlign.Start)
+      .justifyContent(FlexAlign.Center)
+      .padding({ left: 12, right: 12 })
     }
-    .width(152).backgroundColor("#F2F2F2").border({ width: 1.5, color: this.selectedResumeIndex === index ? '#007DFF' : '#EBEBEB', radius: 14 })
+    .width(152)
+    .backgroundColor("#FFFFFF")
+    .border({ width: 1.5, color: this.selectedResumeIndex === index ? '#007DFF' : '#EBEBEB', radius: 14 })
     .shadow({ radius: 10, color: 'rgba(0,0,0,0.06)', offsetY: 2 })
     .onClick(() => { this.selectedResumeIndex = index; })
-    // 【细节优化】：为卡片增加上下外边距，为自带的 shadow 阴影腾出空间，避免被 List 切断
     .margin({ top: 5, bottom: 10 })
   }
 
@@ -71,34 +145,36 @@ export struct interview {
         }.backgroundColor("#66FFFFFF").justifyContent(FlexAlign.Center).alignItems(VerticalAlign.Center)
         .padding({ bottom: 8.47, top: 8.47, left: 11.39, right: 11.39 }).height(30).width(30).border({ radius: 145 }).margin({ right: 8, top: 9.5, bottom: 9.5 })
       }
-      .width("calc(100% - 32px)")
+      // 🌟 核心修复1：将 px 修改为 vp
+      .width("calc(100% - 32vp)")
       .backgroundColor(AppTheme.PrimaryYellow)
       .height(50)
-      .margin({  bottom: 20 })
+      .margin({ top: 16, bottom: 24, left: 16, right: 16 })
       .border({ radius: 25 })
+
 
       // --- 2. 面试记录区域 ---
       Column() {
         Row() {
-          Text("面试记录").fontSize(17).fontWeight(FontWeight.Medium).fontColor("#000000").margin({ right: 2 })
+          Text("面试记录").fontSize(22).fontWeight(FontWeight.Medium).fontColor("#000000").margin({ right: 2 })
           Image($r("app.media.rightjiantou")).width(8).height(16)
         }
         .width("100%")
-        .margin({ bottom: 4 })
+        .padding({ left: 16, right: 16 })
+        .margin({ bottom: 8 })
 
-        List() {
-          ListItem() { this.joblist("前端工程师", "56", "2天", "20:32", "#FF5B5B", "#D40000") }
-          ListItem() { this.joblist("后端工程师", "62", "3天", "19:40", "#FF8C37", "#E65C00") }
-          ListItem() { this.joblist("后端工程师", "88", "4天", "22:40", "#FFAD5B", "#FF8C37")}
+        List({ space: 0 }) {
+          ListItem() { this.LastEvaluationCardBuilder("前端工程师", "昨天", "14:30", 88, true) }
+          ListItem() { this.LastEvaluationCardBuilder("后端工程师", "2天前", "09:40", 62, true) }
+          ListItem() { this.LastEvaluationCardBuilder("前端工程师", "3天前", "20:32", 56, true) }
         }
         .listDirection(Axis.Horizontal)
         .scrollBar(BarState.Off)
-        // 【修改点 1】：面试记录外层唯一的右阻碍是最底部的 padding({right: 16})。
-        // 所以我们加 16px 宽度，并往右偏移 -16px，刚好摸到屏幕边缘。
-        .width("calc(100% + 16px)")
-        .margin({ right: -16 })
-        .height(70)
-
+        // 🌟 核心修复2：将 px 修改为 vp，确保完美穿透屏幕右侧
+        .width("calc(100% + 10vp)")
+        .margin({ right: -10 })
+        .padding({ left: 4 })
+        .height(90)
       }
       .width("100%")
       .margin({ bottom: 20 })
@@ -107,62 +183,70 @@ export struct interview {
       Column() {
         Text("开始面试")
           .fontSize(22).fontWeight(FontWeight.Medium).fontColor("#000000")
-          .margin({ bottom: 12 }).width('100%')
+          .margin({ bottom: 12 })
+          .padding({ left: 16, right: 16 })
+          .width('100%')
 
         // 大白底卡片
         Column() {
           Row() {
             Text("选择简历").fontSize(20).fontWeight(FontWeight.Medium).fontColor("#000000")
             Blank()
-            Image($r("app.media.plus")).width(30).height(30)
+            Image($r("app.media.plus")).width(24).height(24)
           }.width('100%').margin({ bottom: 11 })
 
           Row() {
             Text("已选中 ").fontSize(14).fontColor("#000000")
-            Text(this.resumes[this.selectedResumeIndex]).fontSize(14).fontColor('#3482FF')
+            Text(this.resumes[this.selectedResumeIndex].name).fontSize(14).fontColor('#007DFF')
           }.width('100%').margin({ bottom: 16 })
 
           List({ space: 14 }) {
-            ForEach(this.resumes, (item: string, index: number) => {
-              ListItem() { this.ResumeCard(index, item) }
+            ForEach(this.resumes, (item: GeneratedTypeLiteralInterface_2, index: number) => {
+              ListItem() { this.ResumeCard(index, item.name, item.image) }
             })
           }
           .listDirection(Axis.Horizontal)
           .scrollBar(BarState.Off)
-          // 【修改点 2】：简历 List 外面有三层右阻碍：白卡内 padding(16) + 白卡 margin(16) + 最底部 padding(16) = 48px。
-          // 所以强行撑大 48px，往右强突 -48px，并且删掉了以前用来留白的 padding({right: 32})。这样划到最后严丝合缝0距离。
-          .width("calc(100% + 48px)")
+          // 🌟 核心修复3：将 px 修改为 vp，简历列表穿透白底卡片的内部右侧 Padding
+          .width("calc(100% + 16vp)")
           .margin({ right: -16, bottom: 20 })
-          .height(220)
+          .height(215)
 
           Row({ space: 16 }) {
-            Button("更换简历").layoutWeight(1).height(44).backgroundColor(Color.White).fontColor(AppTheme.TextBlack).border({ width: 1.5, color: AppTheme.PrimaryYellow, radius: 22 })
-            Button("下一步").layoutWeight(1).height(44).backgroundColor(AppTheme.PrimaryYellow).fontColor(AppTheme.TextBlack).border({ radius: 22 })
+            Button("更换简历")
+              .layoutWeight(1).height(44)
+              .backgroundColor(Color.White).fontColor(AppTheme.TextBlack)
+              .border({ width: 1.5, color: AppTheme.PrimaryYellow, radius: 22 })
+            Button("下一步")
+              .layoutWeight(1).height(44)
+              .backgroundColor(AppTheme.PrimaryYellow).fontColor(AppTheme.TextBlack)
+              .border({ radius: 22 })
+              .onClick(()=>{ RouterModule.push('Page9') })
           }.width('100%')
         }
-        .width('calc(100% - 32px)')
+        // 🌟 核心修复4：将 px 修改为 vp，恢复白卡片的左右边距留白
+        .width('calc(100% - 32vp)')
         .padding(16)
         .backgroundColor(Color.White)
         .borderRadius(24)
-        .shadow({ radius: 20, color: 'rgba(0,0,0,0.05)', offsetY: 4 })
+        .shadow({ radius: 20, color: 'rgba(0,0,0,0.04)', offsetY: 4 })
         .margin({ left: 16, right: 16 })
       }
       .width('100%')
+      .margin({ bottom: 28 })
 
-      // 弹性弹簧，自动把底部文字压在屏幕最下面
       Blank()
 
-      // 底部文字
+      // 底部版权与隐私政策
       Column() {
-        Text("面试官").fontSize(8).fontColor('#878787').margin({ bottom: 6 })
-        Text("查看面试官简历隐私处理政策").fontSize(8).fontColor('#878787').decoration({ type: TextDecorationType.Underline, color: '#B2B2B2' })
+        Text("面试官").fontSize(10).fontColor('#999999').margin({ bottom: 6 })
+        Text("查看面试官简历隐私处理政策").fontSize(10).fontColor('#999999').decoration({ type: TextDecorationType.Underline, color: '#B2B2B2' })
       }
       .width('100%')
       .alignItems(HorizontalAlign.Center)
       .margin({ bottom: 24 })
 
     }
-    .padding({ left: 16, right: 16 }) // 这个全局间距没动
     .width("100%")
     .height("100%")
     .backgroundColor('#F7F8FA')
