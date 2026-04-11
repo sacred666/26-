@@ -1,21 +1,19 @@
 import { AppTheme } from '../constants/AppTheme'
 import { RouterModule } from '../utils/RouterModule'
+import abilityAccessCtrl from '@ohos.abilityAccessCtrl';
+import common from '@ohos.app.ability.common';
+import { speechRecognizer } from '@kit.CoreSpeechKit';
+import { audio } from '@kit.AudioKit';
 import { MiniCameraPreview } from './MiniCameraPreview';
 
 @Entry
 @Component
 export struct RealInterviewPage {
-  @State isCameraActive: boolean = true;
+  @State forceMountCamera: boolean = true;
+  @State isCameraActive: boolean = false;
+  @State isFirstLoad: boolean = true;
 
-  onPageShow() {
-    this.isCameraActive = true;
-  }
-
-  onPageHide() {
-    this.isCameraActive = false;
-  }
-
-  @StorageLink('currentQuestionIndex') currentIndex: number = 0;
+  @StorageLink('currentQuestionIndex') @Watch('onIndexChange') currentIndex: number = 0;
 
   @State questions: string[] = [
     "请用一分钟的时间，做一下自我介绍。",
@@ -31,31 +29,70 @@ export struct RealInterviewPage {
   @State barHeights: number[] = [0.2, 0.3, 0.5, 0.3, 0.2, 0.15];
   @State audioFrameIndex: number = 0;
   private audioFramesData: number[][] = [
-    [0.2, 0.3, 0.5, 0.3, 0.2, 0.15],
-    [0.3, 0.5, 0.7, 0.5, 0.3, 0.2],
-    [0.5, 0.7, 0.9, 0.7, 0.5, 0.3],
-    [0.4, 0.6, 0.8, 0.6, 0.4, 0.3],
-    [0.3, 0.5, 0.7, 0.5, 0.3, 0.2],
-    [0.2, 0.3, 0.5, 0.3, 0.2, 0.15]
+    [0.2, 0.3, 0.5, 0.3, 0.2, 0.15], [0.3, 0.5, 0.7, 0.5, 0.3, 0.2],
+    [0.5, 0.7, 0.9, 0.7, 0.5, 0.3], [0.4, 0.6, 0.8, 0.6, 0.4, 0.3],
+    [0.3, 0.5, 0.7, 0.5, 0.3, 0.2], [0.2, 0.3, 0.5, 0.3, 0.2, 0.15]
   ];
 
-  @State transcriptText: string = "";
-  private defaultTranscript: string = "这里是回答内容的实时语音转文字。我现在正在模拟用户的真实语音输入过程，伴随着你说话声音的起伏，下方的柱状波形也会随之产生真实的跳动感，10秒之后右侧的按钮就会亮起...";
+  @State transcriptText: string = "正在准备面试环境...";
+  private finalTranscript: string = "";
 
   private timerId: number = -1;
   private voiceTimerId: number = -1;
-  private charIndex: number = 0;
+  private asrEngine: speechRecognizer.SpeechRecognitionEngine | null = null;
+  private currentSessionId: string = "session_real";
+  private audioCapturer: audio.AudioCapturer | null = null;
 
   aboutToAppear() {
-    this.startInterviewLogic();
+    let context = getContext(this) as common.UIAbilityContext;
+    setTimeout(() => {
+      this.isCameraActive = true;
+      setTimeout(() => { this.safeStart(context); }, 100);
+    }, 500);
+  }
+
+  onPageShow() {
+    if (!this.isFirstLoad) {
+      let context = getContext(this) as common.UIAbilityContext;
+      setTimeout(() => {
+        this.isCameraActive = true;
+        setTimeout(() => { this.safeStart(context); }, 200);
+      }, 300);
+    }
+    this.isFirstLoad = false;
+  }
+
+  onPageHide() {
+    this.stopASREngine();
+    this.clearAllTimers();
   }
 
   aboutToDisappear() {
+    this.isCameraActive = false; // 离开实战准备看报告，彻底释放相机
     this.clearAllTimers();
+    this.stopASREngine();
+  }
+
+  async safeStart(context: common.UIAbilityContext) {
+    try {
+      let atManager = abilityAccessCtrl.createAtManager();
+      let requestResult = await atManager.requestPermissionsFromUser(context, ['ohos.permission.MICROPHONE']);
+      if (requestResult.authResults[0] === 0) {
+        if (this.forceMountCamera) {
+          this.startInterviewLogic();
+        }
+      } else {
+        this.transcriptText = "麦克风权限被拒绝，无法录音。";
+      }
+    } catch (err) {
+      let e = err as Error;
+      this.transcriptText = `🚨 系统权限请求拦截: ${e.message}`;
+    }
   }
 
   startInterviewLogic() {
     this.clearAllTimers();
+    this.stopASREngine();
 
     this.timerId = setInterval(() => {
       if (this.countdown > 0) {
@@ -68,12 +105,77 @@ export struct RealInterviewPage {
     this.voiceTimerId = setInterval(() => {
       this.audioFrameIndex = (this.audioFrameIndex + 1) % this.audioFramesData.length;
       this.barHeights = this.audioFramesData[this.audioFrameIndex];
-
-      if (this.charIndex < this.defaultTranscript.length) {
-        this.transcriptText += this.defaultTranscript[this.charIndex];
-        this.charIndex++;
-      }
     }, 150);
+
+    this.startRealASREngine();
+  }
+
+  async startRealASREngine() {
+    this.transcriptText = "【系统】正在初始化长语音引擎...";
+    this.finalTranscript = "";
+    try {
+      let initParamsInfo: speechRecognizer.CreateEngineParams = { language: 'zh-CN', online: 1, extraParams: { "locate": "CN", "recognizerMode": "long" } };
+      this.asrEngine = await speechRecognizer.createEngine(initParamsInfo);
+      let listener: speechRecognizer.RecognitionListener = {
+        onStart: (sessionId: string, eventMessage: string) => { this.transcriptText = "🎤 录音中，请开始面试回答..."; },
+        onEvent: (sessionId: string, eventCode: number, eventMessage: string) => {},
+        onResult: (sessionId: string, result: speechRecognizer.SpeechRecognitionResult) => {
+          if (result.isFinal) {
+            this.finalTranscript += result.result;
+            this.transcriptText = this.finalTranscript;
+          } else {
+            this.transcriptText = this.finalTranscript + result.result;
+          }
+        },
+        onComplete: (sessionId: string, eventMessage: string) => { console.info(`[ASR] 正常完成`); },
+        onError: (sessionId: string, errorCode: number, errorMessage: string) => {
+          if (errorCode === 1002200010) {
+            this.transcriptText = "【提示】语音流中断，正在尝试重连...";
+          } else {
+            this.transcriptText = `❌ 识别异常(${errorCode})`;
+          }
+          this.stopASREngine();
+        }
+      };
+      this.asrEngine.setListener(listener);
+      this.currentSessionId = Date.now().toString();
+
+      let audioStreamInfo: audio.AudioStreamInfo = {
+        samplingRate: audio.AudioSamplingRate.SAMPLE_RATE_16000,
+        channels: audio.AudioChannel.CHANNEL_1,
+        sampleFormat: audio.AudioSampleFormat.SAMPLE_FORMAT_S16LE,
+        encodingType: audio.AudioEncodingType.ENCODING_TYPE_RAW
+      };
+      let audioCapturerInfo: audio.AudioCapturerInfo = {
+        source: audio.SourceType.SOURCE_TYPE_VOICE_RECOGNITION,
+        capturerFlags: 0
+      };
+      this.audioCapturer = await audio.createAudioCapturer({ streamInfo: audioStreamInfo, capturerInfo: audioCapturerInfo });
+
+      this.audioCapturer.on('readData', (buffer: ArrayBuffer) => {
+        if (this.asrEngine && buffer.byteLength > 0) {
+          try {
+            let uint8Array = new Uint8Array(buffer);
+            this.asrEngine.writeAudio(this.currentSessionId, uint8Array);
+          } catch (err) {}
+        }
+      });
+
+      let startParams: speechRecognizer.StartParams = {
+        sessionId: this.currentSessionId, audioInfo: { audioType: 'pcm', sampleRate: 16000, soundChannel: 1, sampleBit: 16 },
+        extraParams: { "recognitionMode": 1, "maxAudioDuration": 60000, "vadBegin": 20000, "vadEnd": 5000 }
+      };
+      this.asrEngine.startListening(startParams);
+      await this.audioCapturer.start();
+
+    } catch (err) {
+      let e = err as Error; this.transcriptText = `🚨 启动失败: ${e.message}`;
+    }
+  }
+
+  stopASREngine() {
+    if (this.audioCapturer) { try { this.audioCapturer.stop(); this.audioCapturer.release(); } catch (err) {} finally { this.audioCapturer = null; } }
+    if (this.asrEngine) { try { this.asrEngine.finish(this.currentSessionId); this.asrEngine.cancel(this.currentSessionId); this.asrEngine.shutdown(); } catch(err) {} finally { this.asrEngine = null; } }
   }
 
   clearAllTimers() {
@@ -84,13 +186,20 @@ export struct RealInterviewPage {
   nextQuestion() {
     if (this.currentIndex < this.questions.length - 1) {
       this.currentIndex++;
-      this.countdown = 10;
-      this.isAnswerReady = false;
-      this.transcriptText = "";
-      this.charIndex = 0;
-      this.startInterviewLogic();
     } else {
-      RouterModule.push('InterviewProReportPage');
+      this.forceMountCamera = false;
+      setTimeout(() => { RouterModule.clearAndPush('InterviewProReportPage'); }, 200);
+    }
+  }
+
+  onIndexChange() {
+    this.countdown = 10;
+    this.isAnswerReady = false;
+    this.transcriptText = "";
+    this.finalTranscript = "";
+
+    if (this.forceMountCamera) {
+      this.startInterviewLogic();
     }
   }
 
@@ -105,6 +214,7 @@ export struct RealInterviewPage {
         }
         .padding({ left: 16, right: 16, top: 10, bottom: 10 })
         .onClick(() => {
+          this.forceMountCamera = false;
           RouterModule.popToName('Page9');
         })
 
@@ -127,11 +237,10 @@ export struct RealInterviewPage {
       .margin({ top: 8, bottom: 8 })
 
       Stack({ alignContent: Alignment.TopStart }) {
-        if (this.isCameraActive) {
-          MiniCameraPreview()
-            .width('100%')
-            .height('100%')
-        }
+        // 🚨 核心修复：直接放置相机组件，通过 isActive 属性控制，绝不使用 if (this.isCameraActive) 包裹
+        MiniCameraPreview({ isActive: this.isCameraActive, componentId: 'real_cam' })
+          .width('100%')
+          .height('100%')
 
         Row() {
           Image($r("app.media.camera"))
@@ -194,7 +303,8 @@ export struct RealInterviewPage {
         })
         .margin({ bottom: 16 })
 
-        Column() {
+        // 语音转文字气泡
+        Scroll() {
           Text(this.transcriptText)
             .fontSize(12)
             .fontColor('#000000')
@@ -203,7 +313,7 @@ export struct RealInterviewPage {
         }
         .width('85%')
         .alignSelf(ItemAlign.End)
-        .constraintSize({ minHeight: 120 })
+        .constraintSize({ minHeight: 120, maxHeight: 150 })
         .backgroundColor('#EEEEEE')
         .borderRadius({
           topLeft: 16,
@@ -212,7 +322,8 @@ export struct RealInterviewPage {
           bottomRight: 16
         })
         .padding(10)
-        .alignItems(HorizontalAlign.Start)
+        .align(Alignment.TopStart)
+        .scrollBar(BarState.Auto)
 
         Blank()
 
@@ -226,12 +337,9 @@ export struct RealInterviewPage {
               .opacity(0.95)
 
             Row() {
-              Column().width(3).height(this.barHeights[0] * 10).borderRadius(5).backgroundColor('#FBFBFB').margin({ left: 1, right: 1 })
-              Column().width(3).height(this.barHeights[1] * 10).borderRadius(5).backgroundColor('#FBFBFB').margin({ left: 1, right: 1 })
-              Column().width(3).height(this.barHeights[2] * 10).borderRadius(5).backgroundColor('#FBFBFB').margin({ left: 1, right: 1 })
-              Column().width(3).height(this.barHeights[3] * 10).borderRadius(5).backgroundColor('#FBFBFB').margin({ left: 1, right: 1 })
-              Column().width(3).height(this.barHeights[4] * 10).borderRadius(5).backgroundColor('#FBFBFB').margin({ left: 1, right: 1 })
-              Column().width(3).height(this.barHeights[5] * 10).borderRadius(5).backgroundColor('#FBFBFB').margin({ left: 1, right: 1 })
+              ForEach(this.barHeights, (h: number) => {
+                Column().width(3).height(h * 10).borderRadius(5).backgroundColor('#FBFBFB').margin({ left: 1, right: 1 })
+              })
             }
             .width(110)
             .height(100)
