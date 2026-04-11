@@ -12,15 +12,10 @@ export struct PreparationPage {
   @StorageProp('isRealMode') isRealMode: boolean = true;
   @State hasCameraPermission: boolean = false;
 
-  @State isCameraActive: boolean = true; // 默认就是开，拒绝灰屏
 
-  onPageShow() {
-    this.isCameraActive = true;
-  }
 
-  onPageHide() {
-    this.isCameraActive = false;
-  }
+
+
 
   aboutToAppear() {
     this.requestPermissionsAndStart();
@@ -50,111 +45,86 @@ export struct PreparationPage {
     }, 100);
   }
 
+  @State forceMountCamera: boolean = true;
+  @State cameraKey: string = 'prep_key';
+
+  @State isCameraActive: boolean = true;
+
+  onPageShow() {
+    this.isCameraActive = true;
+  }
+
+  onPageHide() {
+    this.isCameraActive = false;
+  }
+
   startDotCountdown() {
     setTimeout(() => {
       this.step = 2;
       setTimeout(() => {
         this.step = 3;
         setTimeout(() => {
-          if (this.isRealMode) {
-            RouterModule.replace('RealInterviewPage');
-          } else {
-            RouterModule.replace('StudyInterviewPage');
-          }
+          this.isCameraActive = false; // 准备跳转，熄灭相机
+          setTimeout(() => {
+            if (this.isRealMode) {
+              RouterModule.replace('RealInterviewPage');
+            } else {
+              RouterModule.replace('StudyInterviewPage');
+            }
+          }, 300);
         }, 1000);
       }, 1000);
     }, 1000);
   }
+
 
   build() {
     Column() {
       if (this.hasCameraPermission) {
         Row() {
           Column() {
-            Image($r("app.media.left"))
-              .width(12)
-              .height(24)
-              .fillColor(Color.Black)
-              .objectFit(ImageFit.Contain)
+            Image($r("app.media.left")).width(12).height(24).fillColor(Color.Black).objectFit(ImageFit.Contain)
           }
           .padding({ left: 16, right: 16, top: 16, bottom: 16 })
           .onClick(() => {
-            RouterModule.pop();
+            this.isCameraActive = false;
+            setTimeout(() => { RouterModule.pop(); }, 300);
           })
 
           Blank()
 
           Stack({ alignContent: Alignment.Bottom }) {
-            // 你最原始的包裹写法
-            if (this.isCameraActive) {
-              MiniCameraPreview()
-            }
-
+            MiniCameraPreview({ isActive: this.isCameraActive, componentId: 'prep_cam' })
             Text("请正对摄像头")
-              .fontSize(8)
-              .fontColor(Color.White)
-              .backgroundColor('rgba(0,0,0,0.6)')
-              .width('100%')
-              .textAlign(TextAlign.Center)
-              .padding({ top: 2, bottom: 4 })
+              .fontSize(8).fontColor(Color.White).backgroundColor('rgba(0,0,0,0.6)')
+              .width('100%').textAlign(TextAlign.Center).padding({ top: 2, bottom: 4 })
           }
-          .width(95)
-          .height(130)
-          .margin({ right: 16, top: 16 })
-          .borderRadius(10)
-          .clip(true)
-          .border({ width: 2, color: '#007DFF' })
-        }
-        .width('100%')
-        .alignItems(VerticalAlign.Top)
+          .width(95).height(130).margin({ right: 16, top: 16 })
+          .borderRadius(10).clip(true).border({ width: 2, color: '#007DFF' })
+        }.width('100%').alignItems(VerticalAlign.Top)
 
         Blank()
 
         Column() {
           if (this.step === 0) {
-            Text("准备好，面试马上开始。")
-              .fontSize(24)
-              .fontWeight(FontWeight.Medium)
-              .fontColor(Color.Black)
-              .margin({ bottom: 144 })
-
-            Progress({ value: this.progressValue, total: 100, type: ProgressType.Linear })
-              .width('70%')
-              .color(Color.Black)
-              .backgroundColor(Color.White)
-              .style({ strokeWidth: 4 })
-              .margin({ bottom: 19 })
-
-            Text("你知道吗？80%的面试问题其实都可以归类为三种：\n能力、动机、匹配度。")
-              .fontSize(12)
-              .fontColor('rgba(0,0,0,0.6)')
-              .textAlign(TextAlign.Center)
-              .lineHeight(18)
-
+            Text("准备好，面试马上开始。").fontSize(24).fontWeight(FontWeight.Medium).fontColor(Color.Black).margin({ bottom: 144 })
+            Progress({ value: this.progressValue, total: 100, type: ProgressType.Linear }).width('70%').color(Color.Black).backgroundColor(Color.White).style({ strokeWidth: 4 }).margin({ bottom: 19 })
+            Text("你知道吗？80%的面试问题其实都可以归类为三种：\n能力、动机、匹配度。").fontSize(12).fontColor('rgba(0,0,0,0.6)').textAlign(TextAlign.Center).lineHeight(18)
           } else {
-            Text(this.step >= 3 ? "面试开始！" : "准备入场！")
-              .fontSize(24)
-              .fontWeight(FontWeight.Medium)
-              .fontColor(Color.Black)
-              .margin({ bottom: 138 })
-
+            Text(this.step >= 3 ? "面试开始！" : "准备入场！").fontSize(24).fontWeight(FontWeight.Medium).fontColor(Color.Black).margin({ bottom: 138 })
             Row({ space: 16 }) {
               Circle({ width: 16, height: 16 }).fill(this.step >= 1 ? Color.Black : Color.White)
               Circle({ width: 16, height: 16 }).fill(this.step >= 2 ? Color.Black : Color.White)
               Circle({ width: 16, height: 16 }).fill(this.step >= 3 ? Color.Black : Color.White)
             }
           }
-        }
-        .width('100%')
-        .alignItems(HorizontalAlign.Center)
+        }.width('100%').alignItems(HorizontalAlign.Center)
 
         Blank()
         Blank()
       }
     }
-    .width('100%')
-    .height('100%')
-    .backgroundColor(AppTheme.PrimaryYellow)
+    .width('100%').height('100%').backgroundColor(AppTheme.PrimaryYellow)
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 }
