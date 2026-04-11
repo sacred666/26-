@@ -15,7 +15,7 @@ export struct AnswerPage {
   ];
 
   @State answers: string[] = [
-    "【参考解析 1】\n自我介绍需要清晰地表达个人背景、核心能力与岗位的匹配度...",
+    "【参考解析 1】\n自我介绍需要清晰地表达个人背景、核心能力与岗位的匹配度。这里是答案显示区。这里是答案显示区。这里是答案显示区域。这里是答案显示区。这里是答案显示区。这里是答案显示区域。这里是答案显示区。这里是答案显示区。这里是答案显示区域。这里是答案显示区。这里是答案显示区。这里是答案显示区域。这里是答案显示区。这里是答案显示区。这里是答案显示区域。这里是答案显示区。这里是答案显示区。这里是答案显示区域。",
     "【参考解析 2】\n这个问题考察的是你的抗压能力和解决问题的思维...",
     "【参考解析 3】\n理解岗位需求是关键。你需要展现...",
     "【参考解析 4】\n考察团队协作和沟通能力。建议回答思路...",
@@ -32,7 +32,7 @@ export struct AnswerPage {
     [0.3, 0.5, 0.7, 0.5, 0.3, 0.2], [0.2, 0.3, 0.5, 0.3, 0.2, 0.15]
   ];
 
-  @State transcriptText: string = "这里是回答内容的实时语音转文字。";
+  @State transcriptText: string = "这里是回答内容的实时语音转文字。这里是回答内容的实时语音转文字。这里是回答内容的实时语音转文字。这里是回答内容的实时语音转文字。这里是回答内容的实时语音转文字。这里是回答内容的实时语音转文字。这里是回答内容的实时语音转文字。";
   private voiceTimerId: number = -1;
 
   aboutToAppear() {
@@ -48,11 +48,7 @@ export struct AnswerPage {
 
   nextQuestion() {
     if (this.currentIndex < this.questions.length - 1) {
-      // 🚀 1. 立刻执行页面退出，开始返回动画
       RouterModule.pop();
-
-      // 🚀 2. 延迟 400ms（等待动画飞完、面试页安全露出后）再让底层切题
-      // 这样能完美避开 UI 渲染冲突，丝滑过渡！
       setTimeout(() => {
         AppStorage.setOrCreate('currentQuestionIndex', this.currentIndex + 1);
       }, 400);
@@ -62,76 +58,152 @@ export struct AnswerPage {
   }
 
   build() {
-    // build 的界面 UI 代码与你之前提供的保持完全一致...
     Column() {
-      // 头部导航栏...
+      // --- 头部导航栏 ---
       Row() {
         Row() { Image($r("app.media.left")).width(12).height(24).objectFit(ImageFit.Contain) }
         .padding({ left: 16, right: 16, top: 10, bottom: 10 })
         .onClick(() => { RouterModule.pop(); })
         Blank()
-        Row() { Text("学习模式").fontSize(10).fontWeight(FontWeight.Medium).fontColor('#333333') }
+        Row() { Text("学习模式").fontSize(12).fontWeight(FontWeight.Medium).fontColor('#333333') }
         .padding({ left: 16, right: 16, top: 6, bottom: 6 }).backgroundColor(AppTheme.PrimaryYellow).borderRadius(16).margin({ right: 16 })
       }.width('100%').height(44).alignItems(VerticalAlign.Center).margin({ bottom: 8 })
 
+      // --- 中间左右卡片区域 ---
       Row({ space: 12 }) {
+        // 左侧：答案显示区
         Column() {
           Row() {
-            Row() { Image($r("app.media.dacha")).width(14).height(14) }.width(32).height(32).backgroundColor('#F5F5F5').borderRadius(16).justifyContent(FlexAlign.Center)
+            Row() { Image($r("app.media.dacha")).width(12).height(12) }.width(32).height(32).backgroundColor('#F5F5F5').borderRadius(16).justifyContent(FlexAlign.Center)
             .onClick(() => { RouterModule.pop(); })
             Blank()
             Row() { Image($r("app.media.fangda")).width(14).height(14) }.width(32).height(32).backgroundColor('#F5F5F5').borderRadius(16).justifyContent(FlexAlign.Center)
             .onClick(() => { RouterModule.push('AnswerDetailPage'); })
           }.width('100%').padding({ left: 16, right: 16, top: 16, bottom: 8 })
-          Scroll() { Text(this.answers[this.currentIndex]).fontSize(12).fontColor(AppTheme.TextBlack).lineHeight(20).padding({ left: 16, right: 16, bottom: 16 }).width('100%') }.layoutWeight(1).width('100%').align(Alignment.TopStart).scrollBar(BarState.Auto)
-        }.layoutWeight(5.5).height('100%').backgroundColor(Color.White).borderRadius(24)
+          Scroll() {
+            Text(this.answers[this.currentIndex]).fontSize(13).fontColor(AppTheme.TextBlack).lineHeight(22).fontWeight(FontWeight.Medium).padding({ left: 16, right: 16, bottom: 16 }).width('100%')
+          }.layoutWeight(1).width('100%').align(Alignment.TopStart).scrollBar(BarState.Auto)
+        }.layoutWeight(5.5).height('100%').backgroundColor(Color.White).borderRadius(24).shadow({ radius: 10, color: 'rgba(0,0,0,0.03)', offsetY: 2 })
 
+        // 右侧：摄像头与要点区
         Column({ space: 12 }) {
+          // 摄像头预览区
           Stack({ alignContent: Alignment.Center }) {
-            Column({ space: 8 }) {
-              Image($r("app.media.camera"))
-                .width(40).height(40).opacity(0.2).objectFit(ImageFit.Contain)
-              Text("回答回顾中")
-                .fontSize(10).fontColor('#999999')
+            Column().width('100%').height('100%')
+              .linearGradient({ direction: GradientDirection.Bottom, colors: [['#777777', 0], ['#333333', 1]] })
+
+            Row() {
+              Image($r("app.media.camera")).width(16).height(16).fillColor(Color.Black).opacity(0.8)
             }
+            .width(28).height(28).backgroundColor('rgba(255,255,255,0.4)')
+            .borderRadius(14).justifyContent(FlexAlign.Center)
+            .position({ x: 12, y: 12 })
+
+            Text("返回以继续面试")
+              .fontSize(14).fontColor(Color.White).fontWeight(FontWeight.Medium)
+              .shadow({ radius: 4, color: 'rgba(0,0,0,0.4)', offsetY: 2 })
           }
-          .width('100%').aspectRatio(1).borderRadius(24).clip(true).backgroundColor('#F5F5F5')
+          .width('100%').aspectRatio(1).borderRadius(24).clip(true).shadow({ radius: 10, color: 'rgba(0,0,0,0.05)', offsetY: 2 })
 
+          // 基础/要点区
           Column() {
-            Row() { Text("基础").fontSize(11).fontWeight(FontWeight.Bold).fontColor(AppTheme.TextBlack).padding({ left: 12, right: 12, top: 4, bottom: 2 }).border({ width: 2, color: AppTheme.PrimaryYellow, radius: 20 }) }.width('100%').justifyContent(FlexAlign.Start)
-            Blank().layoutWeight(1)
-            Column() {
-              Row() { Text("加入题库").fontSize(14).fontWeight(FontWeight.Medium).fontColor(AppTheme.TextBlack); Blank(); Image($r("app.media.aixin")).width(20).height(20).objectFit(ImageFit.Contain) }.width('100%').alignItems(VerticalAlign.Center)
-              Divider().color('#D9D9D9').margin({ top: 8, bottom: 11 })
-              Row() { Text("高分要点").fontSize(14).fontWeight(FontWeight.Medium).fontColor(AppTheme.TextBlack); Blank(); Image($r("app.media.yaodian")).width(20).height(20).objectFit(ImageFit.Contain) }.width('100%').alignItems(VerticalAlign.Center)
-            }.width('100%')
-          }.width('100%').layoutWeight(1).backgroundColor(Color.White).borderRadius(24).padding({ left: 16, right: 16, top: 1, bottom: 6 })
-        }.layoutWeight(4.5).height('100%')
-      }.width('calc(100% - 32vp)').layoutWeight(4).alignItems(VerticalAlign.Top).margin({ bottom: 16 })
+            Row() {
+              Text("基础")
+                .fontSize(10).fontWeight(FontWeight.Medium).fontColor(AppTheme.TextBlack)
+                .padding({ left: 12, right: 12, top: 4, bottom: 4 })
+                .border({ width: 2, color: AppTheme.PrimaryYellow, radius: 20 })
+            }.width('100%').justifyContent(FlexAlign.Start)
+            .margin({ bottom: 20 })
 
+            // 底部：加入题库与高分要点
+            Column() {
+              Row() {
+                Text("加入题目库").fontSize(12).fontWeight(FontWeight.Medium).fontColor(AppTheme.TextBlack)
+                Blank()
+                Image($r("app.media.aixin")).width(18).height(18).objectFit(ImageFit.Contain)
+              }.width('100%').alignItems(VerticalAlign.Center)
+
+              Divider().color('#D9D9D9').strokeWidth(2.5).margin({ top: 12, bottom: 12 })
+
+              Row() {
+                Text("高分要点").fontSize(12).fontWeight(FontWeight.Medium).fontColor(AppTheme.TextBlack)
+                Blank()
+                Image($r("app.media.yaodian")).width(18).height(18).objectFit(ImageFit.Contain)
+              }.width('100%').alignItems(VerticalAlign.Center)
+            }.width('100%')
+
+            Blank()
+
+          }
+          .width('100%')
+          .layoutWeight(1)
+          .backgroundColor(Color.White)
+          .borderRadius(24)
+          .padding({ left: 16, right: 16, top: 14, bottom: 14 })
+          .shadow({ radius: 10, color: 'rgba(0,0,0,0.03)', offsetY: 2 })
+
+        }.layoutWeight(4.5).height('100%')
+      }.width('calc(100% - 32vp)').layoutWeight(4.4).alignItems(VerticalAlign.Top).margin({ bottom: 16 })
+
+      // --- 底部问答控制区 ---
       Column() {
+        // 彩虹边框问题区
         Column() {
-          Text(`${this.questions[this.currentIndex]}`).fontSize(14).fontWeight(FontWeight.Medium).fontColor(AppTheme.TextBlack).width('100%').backgroundColor(Color.White).borderRadius(22).padding({ left: 14, top: 8, bottom: 8, right: 20 })
-        }.width('100%').padding(2).borderRadius(24).linearGradient({ angle: 90, colors: [['#FF3434', 0], ['#FFE600', 0.16], ['#37FF00', 0.33], ['#00BBFF', 0.5], ['#006AFF', 0.66], ['#4000FF', 0.83], ['#FF00EE', 1]] }).margin({ bottom: 16 })
-        Scroll() { Text(this.transcriptText).fontSize(12).fontColor('#000000').lineHeight(20).width('100%') }.width('85%').alignSelf(ItemAlign.End).constraintSize({ minHeight: 120 }).backgroundColor('#EEEEEE').borderRadius(16).padding(16)
+          Text(`${this.questions[this.currentIndex]}`)
+            .fontSize(15).fontWeight(FontWeight.Medium).fontColor(AppTheme.TextBlack)
+            .width('100%').backgroundColor(Color.White).borderRadius(22)
+            .padding({ left: 16, top: 12, bottom: 12, right: 20 })
+        }
+        .width('100%').padding(2.5).borderRadius(24)
+        .linearGradient({ angle: 90, colors: [['#FF3434', 0], ['#FFE600', 0.16], ['#37FF00', 0.33], ['#00BBFF', 0.5], ['#006AFF', 0.66], ['#4000FF', 0.83], ['#FF00EE', 1]] })
+        .margin({ bottom: 16 })
+
+        // 语音转文字框
+        Scroll() {
+          Text(this.transcriptText).fontSize(13).fontColor('#333333').fontWeight(FontWeight.Medium).lineHeight(22).width('100%')
+        }.width('85%').alignSelf(ItemAlign.End).constraintSize({ minHeight: 120 }).backgroundColor('#EEEEEE').borderRadius(16).padding(16)
+
         Blank()
+
+        // 🌟 完美同步 StudyInterviewPage 的底层 Stack UI 代码
         Stack({ alignContent: Alignment.Center }) {
+          // 1. 中间：语音波纹动画
           Stack({ alignContent: Alignment.Center }) {
             Image($r("app.media.6666")).width('100%').height('100%').objectFit(ImageFit.Contain).opacity(0.95)
             Row() {
               ForEach(this.barHeights, (h: number) => {
-                Column().width(3).height(h * 10).borderRadius(5).backgroundColor('#FBFBFB').margin({ left: 1, right: 1 })
+                Column().width(3).height(h * 10).borderRadius(5).backgroundColor('#FBFBFB').margin({ left: 1.5, right: 1.5 })
               })
-            }.width(110).height(100).justifyContent(FlexAlign.Center)
+            }.width(110).height(100).padding({ top: 5, bottom: 5 }).justifyContent(FlexAlign.Center)
           }.width(130).height(100)
-          Row() { Button("跳过").width(56).height(24).fontSize(10).backgroundColor(Color.White).border({ width: 2, color: '#B9B9B9' }).onClick(() => { this.nextQuestion(); }) }.width('100%').justifyContent(FlexAlign.Start)
+
+          // 2. 左侧：跳过按钮
+          Row() {
+            Button("跳过")
+              .width(56).height(24).fontSize(10).fontWeight(FontWeight.Medium).fontColor('#575757')
+              .backgroundColor(Color.White).border({ width: 2, color: '#B9B9B9' })
+              .onClick(() => { this.nextQuestion(); })
+          }.width('100%').height('100%').justifyContent(FlexAlign.Start).alignItems(VerticalAlign.Center).hitTestBehavior(HitTestMode.Transparent)
+
+          // 3. 右侧：提示与答完了按钮
           Row() {
             Stack({ alignContent: Alignment.Bottom }) {
-              Button(!this.isAnswerReady ? this.countdown.toString() : (this.currentIndex === this.questions.length - 1 ? "看报告" : "答完了")).width(56).height(24).fontSize(10).fontColor(Color.White).backgroundColor(this.isAnswerReady ? '#007DFF' : '#B2B2B2').onClick(() => { if (this.isAnswerReady) { this.nextQuestion(); } })
+              Button("提示")
+                .width(56).height(24).fontSize(10).fontWeight(FontWeight.Medium).padding({ left: 5, right: 5 }).fontColor('#000000')
+                .backgroundColor(AppTheme.PrimaryYellow)
+                .offset({ y: -32 }) // 通过悬浮偏移实现叠加排版，保证底层主按钮对齐
+
+              Button(!this.isAnswerReady ? this.countdown.toString() : (this.currentIndex === this.questions.length - 1 ? "看报告" : "答完了"))
+                .width(56).height(24).fontSize(10).fontWeight(FontWeight.Medium).padding({ left: 5, right: 5 }).fontColor(Color.White)
+                .backgroundColor(this.isAnswerReady ? '#007DFF' : '#B2B2B2')
+                .border({ width: this.isAnswerReady ? 2 : 0, color: '#007DFF' })
+                .onClick(() => { if (this.isAnswerReady) { this.nextQuestion(); } })
             }
-          }.width('100%').justifyContent(FlexAlign.End)
+          }.width('100%').height('100%').justifyContent(FlexAlign.End).alignItems(VerticalAlign.Center).hitTestBehavior(HitTestMode.Transparent)
+
         }.width('100%').height(80).margin({ top: 16, bottom: 8 })
-      }.width('100%').layoutWeight(6).backgroundColor(Color.White).borderRadius({ topLeft: 24, topRight: 24 }).padding({ left: 16, right: 16, top: 16, bottom: 5 })
+
+      }.width('100%').layoutWeight(5.6).backgroundColor(Color.White).borderRadius({ topLeft: 24, topRight: 24 }).padding({ left: 16, right: 16, top: 16, bottom: 5 })
     }.width('100%').height('100%').backgroundColor('#F7F8FA').expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 }
