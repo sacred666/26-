@@ -101,21 +101,37 @@ export struct Page9 {
   SpecialTestCardBuilder(item: SpecialTestItem) {
     Column() {
       if (item.id === 0) {
-        Column() {
-          Image(this.selectedSpecialTests.includes(item.id) ? $r("app.media.Frame66") : $r("app.media.Frame67"))
-            .width(30)
-            .height(30)
-            .margin({ bottom: 8 })
-          Text("无")
-            .fontSize(12)
-            .fontWeight(FontWeight.Regular)
-            .fontColor(this.selectedSpecialTests.includes(item.id) ?"#B9B9B9" : '#8E8E93')
-        }
-        .width('100%')
-        .height('100%')
-        .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center)
+        // --- 🚫 “无”选项布局：加入 Stack 以便在右上角放圆圈 ---
+        Stack({ alignContent: Alignment.TopEnd }) {
+          // 居中的图标和文字
+          Column() {
+            Image(this.selectedSpecialTests.includes(item.id) ? $r("app.media.Frame67") : $r("app.media.Frame66"))
+              .width(30)
+              .height(30)
+              .margin({ bottom: 8 })
+            Text("无")
+              .fontSize(12)
+              .fontWeight(FontWeight.Regular)
+              .fontColor(this.selectedSpecialTests.includes(item.id) ? '#8E8E93' : '#B9B9B9')
+          }
+          .width('100%')
+          .height('100%')
+          .justifyContent(FlexAlign.Center)
+          .alignItems(HorizontalAlign.Center)
+
+          // 【新增】：右上角的选中圆圈，和其他选项统一
+          Row() {
+            if (this.selectedSpecialTests.includes(item.id)) {
+              Image($r("app.media.Group7")).width(14).height(14)
+            } else {
+              Circle({ width: 14, height: 14 }).fill(Color.Transparent).stroke('#007DFF').strokeWidth(1.5)
+            }
+          }.padding({ top: 8, right: 8 })
+
+        }.width('100%').height('100%')
+
       } else {
+        // --- 渲染其他能力选项 ---
         Column() {
           Row() {
             Text(item.score).fontSize(10).fontColor(Color.White).backgroundColor('#FF4D4F')
@@ -140,24 +156,42 @@ export struct Page9 {
     .width(90)
     .height(110)
     .padding(0)
+    // 【统一背景色】：选中都是白色，未选中都是灰色 #EEEEEE
     .backgroundColor(this.selectedSpecialTests.includes(item.id) ? Color.White : '#EEEEEE')
     .border({
       width: 1.5,
-      color: this.selectedSpecialTests.includes(item.id) ? (item.id === 0 ? '#CCCCCC' : '#007DFF') : (item.id === 0 ? '#CCCCCC' : '#FF4D4F'),
+      // 【统一边框颜色】：选中都是蓝色 #007DFF。未选中时，"无"给灰色边框，其他给红色边框
+      color: this.selectedSpecialTests.includes(item.id) ? '#007DFF' : (item.id === 0 ? '#CCCCCC' : '#FF4D4F'),
+      // 【统一边框样式】：选中实线，未选中虚线
       style: this.selectedSpecialTests.includes(item.id) ? BorderStyle.Solid : BorderStyle.Dashed,
       radius: 12
     })
     .onClick(() => {
+      // --- 修改后的多选及互斥逻辑 ---
       if (item.id === 0) {
-        this.selectedSpecialTests = [0];
+        if (this.selectedSpecialTests.includes(0)) {
+          // 如果"无"已经是选中状态，再次点击则取消选中（变为空数组）
+          this.selectedSpecialTests = [];
+        } else {
+          // 选中"无"，则清空其他所有选项，只保留 0
+          this.selectedSpecialTests = [0];
+        }
       } else {
-        if (this.selectedSpecialTests.includes(0)) { this.selectedSpecialTests = []; }
+        // 点击了其他选项，先剔除"无"的互斥状态
+        if (this.selectedSpecialTests.includes(0)) {
+          this.selectedSpecialTests = [];
+        }
+
+        // 核心 Toggle 逻辑
         if (this.selectedSpecialTests.includes(item.id)) {
+          // 已存在则移除
           this.selectedSpecialTests = this.selectedSpecialTests.filter(id => id !== item.id);
         } else {
+          // 不存在则加入
           this.selectedSpecialTests.push(item.id);
         }
-        if (this.selectedSpecialTests.length === 0) { this.selectedSpecialTests = [0]; }
+
+        // 【取消了默认勾选】如果全部取消完了，数组就是空的，什么都不做，底部按钮变灰。
       }
     })
   }
@@ -200,14 +234,14 @@ export struct Page9 {
                 Text("林可欣简历01.pdf").fontSize(14).fontColor('#3482FF').maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
               }.padding({top:16,left:14,bottom:17}).alignItems(HorizontalAlign.Start).layoutWeight(1)
 
-              Row() { Text("📄").fontSize(24) }.padding({top:9,bottom:9}).width(37).height(48).backgroundColor('#F5F5F5').borderRadius(4).justifyContent(FlexAlign.Center).margin({ right: 8 })
+              Row() { Image($r("app.media.lkx")) .width(37) .height(48) }.padding({top:9,bottom:9}).width(37).height(48).backgroundColor('#F5F5F5').borderRadius(4).justifyContent(FlexAlign.Center).margin({ right: 8 })
 
               Button("查看").margin({ top: 21, bottom: 21, right: 4 }).padding({ top: 6, bottom: 6, left: 10, right: 10 }).height(24).fontSize(10).fontColor(AppTheme.TextBlack).backgroundColor(AppTheme.PrimaryYellow)
               Button("修改").margin({ top: 21, bottom: 21 }).padding({ top: 6, bottom: 6, left: 10, right: 10 }).height(24).fontSize(10).fontColor(AppTheme.TextBlack).backgroundColor(Color.White).border({ width: 1.5, color: AppTheme.PrimaryYellow })
             }.width('100%').alignItems(VerticalAlign.Center).padding({ right: 12 })
           }.width('100%').backgroundColor(Color.White).borderRadius(24).margin({ bottom: 8 })
 
-          // --- 4. 压力检测 (核心修改区域) ---
+          // --- 4. 压力检测 ---
           Column() {
             Row() {
               Text("题目压力水平检测").fontSize(16).fontWeight(FontWeight.Medium).fontColor(AppTheme.TextBlack)
@@ -216,7 +250,6 @@ export struct Page9 {
               Toggle({ type: ToggleType.Switch, isOn: this.isPressureTestOn })
                 .selectedColor('#007DFF')
                 .onChange((isOn: boolean) => {
-                  // 【核心修改1】：加入 animateTo，让高度变化和展开过程平滑过渡
                   animateTo({ duration: 300, curve: Curve.EaseInOut }, () => {
                     this.isPressureTestOn = isOn;
                   });
@@ -226,7 +259,6 @@ export struct Page9 {
             Text("面试官将通过智能穿戴设备实时采集面试过程中实时心率、心率变异性(HRV)、压力指数趋势等生理数据，分析心理压力变化趋势。")
               .fontSize(9).fontColor('rgba(0,0,0,0.7)').lineHeight(10)
 
-            // 【核心修改2】：基于状态渲染手表连接组件，完美复刻 UI
             if (this.isPressureTestOn) {
               Row() {
                 Image($r("app.media.watch"))
@@ -259,9 +291,9 @@ export struct Page9 {
               .width('100%')
               .padding({ left: 8, right: 20, top: 12, bottom: 11 })
               .margin({ top: 12 })
-              .backgroundColor('#E5F3FF') // 浅蓝色背景
+              .backgroundColor('#E5F3FF')
               .borderRadius(8)
-              .border({ width: 1, color: '#0088FF', style: BorderStyle.Dashed }) // 蓝色虚线边框
+              .border({ width: 1, color: '#0088FF', style: BorderStyle.Dashed })
             }
 
           }
@@ -269,7 +301,6 @@ export struct Page9 {
           .width('100%')
           .backgroundColor(Color.White)
           .borderRadius(24)
-          // 为了让折叠动画不超出圆角范围，可以加上 clip(true)
           .clip(true)
           .padding({top:16,bottom:11,left:14,right:12})
           .margin({ bottom: 8 })
@@ -378,6 +409,10 @@ export struct Page9 {
             .borderRadius(999)
             .onClick(() => {
               if (this.selectedSpecialTests.length > 0) {
+                // 【核心修改 1】：把当前的模式存入 AppStorage 的 'isRealMode' 键中
+                AppStorage.setOrCreate('isRealMode', this.isRealMode);
+
+                // 然后正常跳转，不需要带参数了
                 RouterModule.push('PreparationPage');
               }
             })
