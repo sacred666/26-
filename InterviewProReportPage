@@ -10,9 +10,9 @@ export struct InterviewProReportPage {
   Header() {
     Row() {
       Row() {
-        Image($r("app.media.left")) // 返回箭头图标
-          .width(12)
-          .height(24)
+        Image($r("app.media.456")) // 返回箭头图标
+          .width(40)
+          .height(40)
           .objectFit(ImageFit.Contain)
       }
       .padding({ left: 16, right: 16, top: 10, bottom: 10 })
@@ -84,7 +84,7 @@ export struct InterviewProReportPage {
   @Builder
   RadarCard() {
     Column() {
-      Image($r("app.media.Detailed"))
+      Image($r("app.media.123456"))
         .width("100%")
         .objectFit(ImageFit.Cover)
     }
@@ -97,7 +97,6 @@ export struct InterviewProReportPage {
   // ======= 3. 增长卡片 (Blue) =======
   @Builder
   GrowthCard() {
-    // 🌟 核心修改 1：使用固定的 TopEnd 对齐，不使用绝对定位，确保基础位置一致
     Stack({ alignContent: Alignment.TopEnd }) {
       Column() {
         Text("太棒了！你成长了！")
@@ -128,11 +127,9 @@ export struct InterviewProReportPage {
       Image($r("app.media.7777"))
         .width(56)
         .height(56)
-        // 🌟 核心修改 2：去除定位，强制统一的 margin 偏移量
         .margin({ top: -15, right:0 })
     }
     .width('100%')
-    // 允许图片超出容器边界
     .clip(false)
   }
 
@@ -164,7 +161,6 @@ export struct InterviewProReportPage {
   // ======= 4. 提升卡片 (Red) =======
   @Builder
   ImproveCard() {
-    // 🌟 核心修改 3：使用完全相同的对齐和裁切策略
     Stack({ alignContent: Alignment.TopEnd }) {
       Column() {
         Text("你可以做得更好...")
@@ -185,14 +181,13 @@ export struct InterviewProReportPage {
 
         // 底部推荐课程区域
         Stack({ alignContent: Alignment.BottomStart }) {
-          Image($r("app.media.camera"))
+          Image($r("app.media.12345"))
             .width('100%')
             .height(100)
             .objectFit(ImageFit.Cover)
             .borderRadius(16)
 
-          Column().width('100%').height('50%').borderRadius({bottomLeft: 16, bottomRight: 16})
-            .linearGradient({ direction: GradientDirection.Bottom, colors: [['rgba(0,0,0,0)', 0], ['rgba(0,0,0,0.7)', 1]] })
+
 
           Text("查看课程：前端技术")
             .fontSize(14)
@@ -215,11 +210,9 @@ export struct InterviewProReportPage {
       Image($r("app.media.555"))
         .width(56)
         .height(56)
-        // 🌟 核心修改 4：设置完全一致的 margin 偏移量
         .margin({ top: -15, right: 0})
     }
     .width('100%')
-    // 允许图片超出容器边界
     .clip(false)
   }
 
@@ -248,17 +241,17 @@ export struct InterviewProReportPage {
     .alignItems(VerticalAlign.Top)
   }
 
-  // ======= 底部悬浮操作区 =======
+  // ======= 底部随动操作区 =======
   @Builder
   FooterArea() {
     Column() {
       Button() {
         Row({ space: 8 }) {
           Text("查看作答情况")
-            .fontSize(16)
+            .fontSize(20)
             .fontWeight(FontWeight.Bold)
-            .fontColor("#333333")
-          Image($r("app.media.right"))
+            .fontColor("#5B4B00")
+          Image($r("app.media.543"))
             .width(16)
             .height(16)
             .fillColor("#333333")
@@ -271,27 +264,24 @@ export struct InterviewProReportPage {
       .margin({ bottom: 16 })
       .shadow({ radius: 10, color: 'rgba(255, 215, 0, 0.4)', offsetY: 4 })
       .onClick(() => {
-        // 跳转逻辑
+        RouterModule.push("InterviewResultDetailPage")
       })
 
       Row() {
         Text("准备好再来一场了吗？")
-          .fontSize(12)
-          .fontColor('#666666')
+          .fontSize(15)
+          .fontColor('#000000')
         Text("开始新一轮")
-          .fontSize(12)
+          .fontSize(15)
           .fontColor('#007DFF')
           .onClick(() => {
-            // 重新开始逻辑
+            RouterModule.popToName("Page9")
           })
       }
     }
     .width('100%')
-    .padding({ top: 32, bottom: 24 })
-    .linearGradient({
-      direction: GradientDirection.Bottom,
-      colors: [['rgba(255,255,240,0.0)', 0.0], ['#FFFFE0', 0.6], ['#FFFFE0', 1.0]]
-    })
+    // 调整上下边距，使其作为最后一个列表项看起来更协调
+    .padding({ top: 16, bottom: 40 })
   }
 
   // ======= 页面主体 =======
@@ -300,31 +290,22 @@ export struct InterviewProReportPage {
       // 1. 顶部固定导航
       this.Header()
 
-      // 2. 瀑布流内容区与底部悬浮组合
-      Stack({ alignContent: Alignment.Bottom }) {
+      // 2. 瀑布流内容区
+      WaterFlow() {
+        FlowItem() { this.ScoreCard() }
+        FlowItem() { this.RadarCard() }
+        FlowItem() { this.GrowthCard() }
+        FlowItem() { this.ImproveCard() }
 
-        // 瀑布流主体
-        WaterFlow() {
-          FlowItem() { this.ScoreCard() }
-          FlowItem() { this.RadarCard() }
-          FlowItem() { this.GrowthCard() }
-          FlowItem() { this.ImproveCard() }
-
-          FlowItem() { Column().height(140) }
-        }
-        .columnsTemplate("1fr")
-        .rowsGap(24)
-        .width('100%')
-        .height('100%')
-        .padding({ left: 16, right: 16 })
-        .scrollBar(BarState.Off)
-
-        // 3. 底部固定悬浮区 (始终在视口最上方)
-        this.FooterArea()
-
+        // 将底部操作区直接放入 FlowItem 中，跟随页面滑动
+        FlowItem() { this.FooterArea() }
       }
-      .layoutWeight(1)
+      .columnsTemplate("1fr")
+      .rowsGap(24)
       .width('100%')
+      .layoutWeight(1) // 占满下方剩余屏幕空间
+      .padding({ left: 16, right: 16 })
+      .scrollBar(BarState.Off)
 
     }
     .width('100%')
