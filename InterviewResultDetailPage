@@ -2,354 +2,469 @@ import { AppTheme } from '../constants/AppTheme'
 import { RouterModule } from '../utils/RouterModule'
 
 // ==========================================
-// 1. 定义后端数据接口 (Interface)
+// 1. 严格模式数据类定义
 // ==========================================
-interface MetricData {
-  name: string;
-  score: number;
-  levelText: string;
-  color: string;
+
+export class HighlightDetail {
+  personalStatus: string[] = []; // ❤️ 个人状态
+  questionTags: string[] = [];   // 🏷️ 题目标签
+  improveAdvice: string = '';    // 🌟 针对【高亮部分】的具体改善建议
+  scriptInfo: string = '';
+  voiceAnalysis: string = '';    // 🎙️ 语音分析
 }
 
-interface QuestionDetail {
-  id: string;
-  questionNum: number;
-  questionScore: number;
-  questionText: string;
-  answerText: string;
-  metrics: MetricData[];
-  evaluationText: string;
+export class AnswerSegment {
+  text: string = '';
+  isHighlight: boolean = false;
+  detailData?: HighlightDetail;
 }
 
-interface ReportDetailData {
-  sessionId: string;
-  positionName: string;
-  summary: string;
-  totalScore: number;
-  questions: QuestionDetail[];
+export class QuestionData {
+  id: string = '';
+  num: number = 0;
+  score: number = 0;
+  time: string = '';
+  questionText: string = '';
+  answerSegments: AnswerSegment[] = [];
+  overallImproveAdvice: string = '';
 }
 
+export class CardStyle {
+  isHigh: boolean = false;
+  mainColor: string = '';
+  faintColor: string = '';
+  highlightBg: string = '';
+  gradColor1: string = '';
+  gradColor2: string = '';
+  gradColor3: string = '';
+  badgeBg: string = '';
+  shadowColor: string = '';
+}
+
+// ==========================================
+// 2. 独立的单题卡片组件
+// ==========================================
+@Component
+struct QuestionCardView {
+  @Prop item: QuestionData;
+  @Prop cardStyle: CardStyle;
+
+  @State isActive: boolean = false;
+
+  @Builder
+  TagModuleBuilder(data: HighlightDetail) {
+    Column({ space: 12 }) {
+      // 1. 顶部两等分小卡片
+      Row({ space: 12 }) {
+        Column() {
+          Text("个人状态").fontSize(11).fontColor(this.cardStyle.mainColor).opacity(0.7).margin({ bottom: 6 })
+          Column({ space: 4 }) {
+            ForEach(data.personalStatus || [], (tag: string) => {
+              Text(tag).fontSize(13).fontColor(this.cardStyle.mainColor).fontWeight(FontWeight.Bold)
+            })
+          }
+          .alignItems(HorizontalAlign.Start)
+        }
+        .layoutWeight(1).alignItems(HorizontalAlign.Start)
+        .padding(14).backgroundColor('rgba(255,255,255,0.95)').borderRadius(12)
+        .border({ width: 0.5, color: '#F0F0F0' })
+        .shadow({ radius: 12, color: 'rgba(0,0,0,0.1)', offsetY: 4, offsetX: 0 })
+
+        Column() {
+          Text("题目标签").fontSize(11).fontColor(this.cardStyle.mainColor).opacity(0.7).margin({ bottom: 6 })
+          Column({ space: 4 }) {
+            ForEach(data.questionTags || [], (tag: string) => {
+              Text(tag).fontSize(13).fontColor(this.cardStyle.mainColor).fontWeight(FontWeight.Bold)
+            })
+          }
+          .alignItems(HorizontalAlign.Start)
+        }
+        .layoutWeight(1).alignItems(HorizontalAlign.Start)
+        .padding(14).backgroundColor('rgba(255,255,255,0.95)').borderRadius(12)
+        .border({ width: 0.5, color: '#F0F0F0' })
+        .shadow({ radius: 12, color: 'rgba(0,0,0,0.1)', offsetY: 4, offsetX: 0 })
+      }
+      .width('100%')
+
+      // 2. 改善建议
+      Column() {
+        Text("改善建议").fontSize(11).fontColor(this.cardStyle.mainColor).opacity(0.7).margin({ bottom: 6 })
+        Text(data.improveAdvice).fontSize(15).fontColor(this.cardStyle.mainColor).lineHeight(20)
+      }
+      .width('100%').alignItems(HorizontalAlign.Start)
+      .padding(14).backgroundColor('rgba(255,255,255,0.95)').borderRadius(12)
+      .border({ width: 0.5, color: '#F0F0F0' })
+      .shadow({ radius: 12, color: 'rgba(0,0,0,0.1)', offsetY: 4, offsetX: 0 })
+
+      // 3. 相关话术
+      Column() {
+        Text("相关话术").fontSize(11).fontColor(this.cardStyle.mainColor).opacity(0.7).margin({ bottom: 6 })
+        Row({ space: 8 }) {
+          Image($r("app.media.6666"))
+            .width(28).height(28)
+          Text(data.scriptInfo || '').fontSize(13).fontColor(this.cardStyle.mainColor).lineHeight(20).layoutWeight(1)
+        }
+      }
+      .width('100%').alignItems(HorizontalAlign.Start)
+      .padding(14).backgroundColor('rgba(255,255,255,0.95)').borderRadius(12)
+      .border({ width: 0.5, color: '#F0F0F0' })
+      .shadow({ radius: 12, color: 'rgba(0,0,0,0.1)', offsetY: 4, offsetX: 0 })
+
+      // 4. 语音分析
+      Column() {
+        Text("语音分析").fontSize(11).fontColor(this.cardStyle.mainColor).opacity(0.7).margin({ bottom: 6 })
+        Row({ space: 8 }) {
+          Image($r("app.media.Player"))
+            .width(28).height(28)
+          Text(data.voiceAnalysis || '').fontSize(13).fontColor(this.cardStyle.mainColor).lineHeight(20).layoutWeight(1)
+        }
+      }
+      .width('100%').alignItems(HorizontalAlign.Start)
+      .padding(14).backgroundColor('rgba(255,255,255,0.95)').borderRadius(12)
+      .border({ width: 0.5, color: '#F0F0F0' })
+      .shadow({ radius: 12, color: 'rgba(0,0,0,0.1)', offsetY: 4, offsetX: 0 })
+
+      // 5. 能力变化
+      Column() {
+        Text("能力变化").fontSize(11).fontColor(this.cardStyle.mainColor).opacity(0.7).margin({ bottom: 8 })
+        Image($r("app.media.Detailed"))
+          .width('100%')
+          .height(160)
+          .objectFit(ImageFit.Contain)
+          .borderRadius(8)
+      }
+      .width('100%').alignItems(HorizontalAlign.Start)
+      .padding(14).backgroundColor('rgba(255,255,255,0.95)').borderRadius(12)
+      .border({ width: 0.5, color: '#F0F0F0' })
+      .shadow({ radius: 12, color: 'rgba(0,0,0,0.1)', offsetY: 4, offsetX: 0 })
+    }
+    .width('100%')
+  }
+
+  build() {
+    Stack({ alignContent: Alignment.TopEnd }) {
+
+      // --- 底层：完整的卡片容器 ---
+      Column() {
+        Column({ space: 16 }) {
+
+          // --- 题号 ---
+          Text(`问题 ${this.item.num}`)
+            .fontSize(20)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(this.cardStyle.mainColor)
+            .width('100%')
+            .padding({ left: 4, top: 4 })
+
+          // --- 1. 问题框 ---
+          Column() {
+            Row() {
+              Text("问题").fontSize(12).fontColor(this.cardStyle.mainColor).margin({ right: 6 }).opacity(0.8)
+              Text(this.item.time).fontSize(12).fontColor(this.cardStyle.mainColor).opacity(0.8)
+            }
+            .backgroundColor('rgba(255,255,255,0.7)')
+            .padding({ left: 10, right: 10, top: 4, bottom: 4 })
+            .borderRadius(12)
+            .margin({ bottom: 12 })
+
+            Text(this.item.questionText)
+              .fontSize(17)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(this.cardStyle.mainColor)
+              .lineHeight(22)
+              .width('100%')
+          }
+          .width('100%')
+          .alignItems(HorizontalAlign.Start)
+          .padding(16)
+          .backgroundColor('rgba(255, 255, 255, 0.6)')
+          .borderRadius(16)
+
+          // --- 2. 答案框 ---
+          Column() {
+            Row() {
+              Text("回答").fontSize(12).fontColor(this.cardStyle.mainColor).margin({ right: 6 }).opacity(0.8)
+              Text("00:00:00").fontSize(12).fontColor(this.cardStyle.mainColor).opacity(0.8)
+            }
+            .backgroundColor('rgba(255,255,255,0.7)')
+            .padding({ left: 10, right: 10, top: 4, bottom: 4 })
+            .borderRadius(12)
+            .margin({ bottom: 12 })
+
+            ForEach(this.item.answerSegments, (seg: AnswerSegment, index: number) => {
+              if (seg.isHighlight) {
+                Column() {
+                  Text(seg.text)
+                    .backgroundColor(this.cardStyle.highlightBg)
+                    .fontColor(this.cardStyle.mainColor)
+                    .fontWeight(FontWeight.Bold)
+                    .fontSize(15)
+                    .lineHeight(20)
+                    .width('100%')
+                    .onClick(() => {
+                      animateTo({ duration: 300, curve: Curve.EaseInOut }, () => {
+                        this.isActive = !this.isActive;
+                      });
+                    })
+
+                  if (this.isActive) {
+                    Column() {
+                      this.TagModuleBuilder(seg.detailData as HighlightDetail)
+                    }
+                    .margin({ top: 16, bottom: 16 })
+                  }
+                }
+                .width('100%')
+              } else {
+                Text(seg.text)
+                  .fontColor(this.isActive ? this.cardStyle.faintColor : this.cardStyle.mainColor)
+                  .fontWeight(FontWeight.Normal)
+                  .fontSize(15)
+                  .lineHeight(20)
+                  .width('100%')
+              }
+            })
+          }
+          .width('100%')
+          .alignItems(HorizontalAlign.Start)
+          .padding(16)
+          .backgroundColor('rgba(255, 255, 255, 0.6)')
+          .borderRadius(16)
+
+          // --- 3. 改善建议框 ---
+          Column() {
+            Text("改善建议")
+              .fontSize(12)
+              .fontColor(this.isActive ? this.cardStyle.faintColor : this.cardStyle.mainColor)
+              .fontWeight(FontWeight.Bold)
+              .margin({ bottom: 8 })
+
+            Text(this.item.overallImproveAdvice)
+              .fontSize(15)
+              .fontColor(this.isActive ? this.cardStyle.faintColor : this.cardStyle.mainColor)
+              .lineHeight(20)
+              .width('100%')
+          }
+          .width('100%')
+          .alignItems(HorizontalAlign.Start)
+          .padding(16)
+          .backgroundColor('rgba(255, 255, 255, 0.6)')
+          .borderRadius(16)
+
+        }
+        .width('100%')
+        .padding(20)
+        .radialGradient({
+          center: ['100%', '0%'],
+          radius: '120%',
+          colors: [
+            [this.cardStyle.gradColor1, 0.0],
+            [this.cardStyle.gradColor2, 0.4],
+            [this.cardStyle.gradColor3, 1.0]
+          ]
+        })
+        .borderRadius(24)
+        .shadow({ radius: 30, color: this.cardStyle.shadowColor, offsetY: 10, offsetX: 0 })
+      }
+      .width('100%')
+      .padding({ left: 16, right: 16, top: 22 }) // 内部卡片边距 16，避开屏幕边缘，同时留出 top 给勋章
+
+      // --- 顶层：得分勋章 ---
+      Stack({ alignContent: Alignment.Center }) {
+        Circle({ width: 44, height: 44 }).fill(this.cardStyle.badgeBg)
+        Circle({ width: 36, height: 36 }).fill(Color.White)
+        Text(`${this.item.score}`)
+          .fontSize(16)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(this.cardStyle.mainColor)
+      }
+      .margin({ top: 0, right: 4 }) // 不会被裁剪
+
+    }
+    .width('100%')
+    .padding({ bottom: 16 })
+  }
+}
+
+// ==========================================
+// 3. 主页面
+// ==========================================
 @Entry
 @Component
 export struct InterviewResultDetailPage {
-  // ==========================================
-  // 2. 模拟后端返回的数据
-  // ==========================================
-  @State reportData: ReportDetailData = {
-    sessionId: "#MB-9231",
-    positionName: "前端工程师",
-    summary: "总答题情况概述和各个表现维度的分析。你的整体表现良好，但在逻辑深度和细节把控上还有提升空间。",
-    totalScore: 84,
-    questions: [
-      {
-        id: "q1",
-        questionNum: 1,
-        questionScore: 80,
-        questionText: "Can you describe a time you had to manage conflicting stakeholder requirements?",
-        answerText: "In my previous project, I faced a situation where the engineering team wanted to prioritize technical debt, while the product owner insisted on a new feature rollout. I facilitated a prioritization workshop, using data-driven analysis to align both parties on the long-term business impact...",
-        metrics: [
-          { name: "专业度", score: 85, levelText: "高 (85%)", color: "#004887" },
-          { name: "流畅度", score: 70, levelText: "中 (70%)", color: "#004887" },
-          { name: "逻辑性", score: 90, levelText: "极高 (90%)", color: "#004887" }
-        ],
-        evaluationText: "To add more depth, try to mention the specific KPIs that were at risk. For example: 'The feature delay would have impacted our Q3 acquisition target by 15%, which we solved by putting resources during the wait time.' This shows quantitative awareness."
-      },
-      {
-        id: "q2",
-        questionNum: 2,
-        questionScore: 62,
-        questionText: "How do you approach a design problem when you have limited user data?",
-        answerText: "I usually look at competitors and see what they are doing. I also try to make assumptions based on past experience and then test those assumptions as soon as possible with a quick prototype.",
-        metrics: [
-          { name: "专业度", score: 55, levelText: "一般 (55%)", color: "#004887" },
-          { name: "深度", score: 40, levelText: "浅显 (40%)", color: "#FF4D4F" },
-          { name: "逻辑性", score: 65, levelText: "中等 (65%)", color: "#004887" }
-        ],
-        evaluationText: "Your answer was a bit brief. Try incorporating the concept of 'triangulation' - using proxy data, secondary research, or internal stakeholders who interact with customers, to bridge the data gap before launching into prototypes."
-      }
-    ]
-  };
 
-  // ==========================================
-  // 3. 页面头部 Builder
-  // ==========================================
+  @State questions: QuestionData[] = [
+    {
+      id: "q1",
+      num: 1,
+      score: 88,
+      time: "00:02:30",
+      questionText: "你能否描述一次你必须处理相互冲突的利益相关方需求的情形？",
+      overallImproveAdvice: "为了增加回答的整体深度，请在开头简要提及当时面临风险的具体KPI。例如：“该功能的延误将导致我们第三季度的获客目标受到15%的影响”。这能从全局体现您具备量化意识。",
+      answerSegments: [
+        { text: "在我之前负责一个产品功能上线项目时，确实遇到了典型的利益相关方需求冲突。主要矛盾来自于业务销售部门和技术风控部门。\n\n当时我们计划在第三季度推出一项限时闪购活动来冲击业绩。销售部门的核心诉求是快和门槛低，希望系统审核流程从简；而技术安全团队则坚持增加实名验证。\n\n面对这个冲突，我没有直接站队，而是采取了三个步骤：\n\n", isHighlight: false } as AnswerSegment,
+        {
+          text: "第一，数据拉齐，定义核心底线。我组织了一次15分钟的快速对齐会，让双方列出不可妥协的底线。",
+          isHighlight: true,
+          detailData: {
+            personalStatus: ["❤️ 96 BPM", "😥 焦虑心理"],
+            questionTags: ["# 利益相关冲突", "# STAR法则", "# 语速平稳"],
+            improveAdvice: "在描述‘数据拉齐’这一动作时，建议具体补充你当时拉齐了哪些维度的数据，这能增强你客观决策的说服力。",
+            scriptInfo: "“我通过拉取对比漏斗数据，客观呈现了不同方案的优劣势，从而推动了共识。”",
+            voiceAnalysis: "语速平稳自信，逻辑清晰，关键词重音到位。若在“冲突”处稍加停顿，感染力会更强。"
+          } as HighlightDetail
+        } as AnswerSegment,
+        { text: "\n技术方明确告诉我，如果不做实名，可能会导致数十万损失；而销售方则担心流程过长会导致70%的用户流失。\n\n第二，寻找第三方方案。我提出：对普通订单执行标准风控，仅对高价值订单触发实名验证。最终我们采纳了这个折中方案。", isHighlight: false } as AnswerSegment
+      ]
+    } as QuestionData,
+    {
+      id: "q2",
+      num: 2,
+      score: 56,
+      time: "00:01:45",
+      questionText: "在你的过往经历中，遇到过最大的困难是什么？你是如何克服的？",
+      overallImproveAdvice: "第一，风险意识整体较弱。遇到阻塞性问题没有第一时间升级。第二，结尾的总结反思不够深刻，未能给出后续避免此类情况的通用机制。",
+      answerSegments: [
+        { text: "当时项目快要上线了，但是核心功能突然出现了严重的性能瓶颈。\n\n", isHighlight: false } as AnswerSegment,
+        {
+          text: "因为时间紧迫，我没有及时上报风险，而是自己熬夜死磕了三天，",
+          isHighlight: true,
+          detailData: {
+            personalStatus: ["⚠️ 略显急躁", "💭 逻辑分散"],
+            questionTags: ["# 风险控制", "# 项目管理"],
+            improveAdvice: "不应强调自己单打独斗。建议修改为：‘我第一时间评估了影响面并同步给Leader，同时给出了两套降级预案...’",
+            scriptInfo: "“我立刻将风险同步给项目组，并牵头梳理了降级方案。”",
+            voiceAnalysis: "回答此处时语速偏快，带有轻微的迟疑，建议放慢语速增加笃定感。"
+          } as HighlightDetail
+        } as AnswerSegment,
+        { text: "\n\n最后虽然勉强解决了，但也导致了其他模块联调延期。这次经历让我深刻认识到风险及时暴露的重要性。", isHighlight: false } as AnswerSegment
+      ]
+    } as QuestionData
+  ];
+
+  getCardStyle(score: number): CardStyle {
+    let isHigh = score >= 60;
+    return {
+      isHigh: isHigh,
+      mainColor: isHigh ? '#004887' : '#69000B',
+      faintColor: isHigh ? 'rgba(0, 72, 135, 0.25)' : 'rgba(105, 0, 11, 0.25)',
+      highlightBg: '#FFF385',
+      gradColor1: isHigh ? '#4E93EB' : '#FF928B',
+      gradColor2: isHigh ? '#DFEBFF' : '#FFEEEE',
+      gradColor3: '#FFF9F9',
+      badgeBg: isHigh ? '#A8C9FF' : '#FFB3B3',
+      shadowColor: isHigh ? 'rgba(78, 147, 235, 0.3)' : 'rgba(255, 146, 139, 0.3)'
+    } as CardStyle;
+  }
+
   @Builder
   HeaderView() {
     Column() {
-      // 顶部导航与图标
       Row() {
-        Image($r("app.media.left"))
-          .width(16).height(24)
+        Image($r("app.media.456"))
+          .width(40).height(40)
           .objectFit(ImageFit.Contain)
-          .onClick(() => {
-            RouterModule.pop();
-          })
+          .onClick(() => { RouterModule.pop(); })
+        Text("作答情况")
+          .fontSize(20)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(AppTheme.TextBlack)
+          .margin({ left: 8 })
         Blank()
-        Image($r("app.media.Container"))
-          .width(24).height(24)
       }
       .width('100%')
-      .padding({ top: 16, bottom: 16 })
-
-      // Session ID 与 岗位名称
-      Text(`SESSION ID: ${this.reportData.sessionId}`)
-        .fontSize(12)
-        .fontColor('#666666')
-        .fontWeight(FontWeight.Medium)
-        .margin({ bottom: 4 })
-        .width('100%')
-
-      Text(this.reportData.positionName)
-        .fontSize(28)
-        .fontWeight(FontWeight.Bolder)
-        .fontColor(AppTheme.TextBlack)
-        .margin({ bottom: 8 })
-        .width('100%')
-
-      Text(this.reportData.summary)
-        .fontSize(13)
-        .fontColor('#666666')
-        .lineHeight(20)
-        .margin({ bottom: 16 })
-        .width('100%')
-
-      // 综合得分蓝色卡片
-      Row() {
-        Column() {
-          Text("综合得分")
-            .fontSize(12)
-            .fontColor('#004887')
-            .fontWeight(FontWeight.Medium)
-          Row() {
-            Text(`${this.reportData.totalScore}`)
-              .fontSize(32)
-              .fontWeight(FontWeight.Bolder)
-              .fontColor('#004887')
-            Text("/100")
-              .fontSize(14)
-              .fontColor('#004887')
-              .margin({ left: 2, top: 10 })
-          }
-        }
-        .alignItems(HorizontalAlign.Start)
-
-        Blank()
-
-        Image($r("app.media.888"))
-          .width(32).height(32)
-      }
-      .width('100%')
-      .backgroundColor('#D6E4FF')
-      .borderRadius(16)
-      .padding({ left: 20, right: 20, top: 16, bottom: 16 })
-      .alignItems(VerticalAlign.Center)
+      .padding({ left: 16, right: 16, top: 10, bottom: 10 })
     }
     .width('100%')
-    .padding({ left: 16, right: 16, bottom: 8 })
+    .backgroundColor('#F6F6F8')
   }
 
-  // ==========================================
-  // 4. 单个题目卡片 Builder
-  // ==========================================
-  @Builder
-  QuestionCard(item: QuestionDetail) {
-    Column() {
-      // 4.1 题号与单题得分
-      Row() {
-        Text(`问题 ${item.questionNum}`)
-          .fontSize(12)
-          .fontColor('#666666')
-          .backgroundColor('#F5F5F5')
-          .padding({ left: 12, right: 12, top: 4, bottom: 4 })
-          .borderRadius(12)
-
-        Blank()
-
-        // 圆形得分框
-        Stack({ alignContent: Alignment.Center }) {
-          Circle({ width: 36, height: 36 })
-            .fill(Color.Transparent)
-            .border({ width: 2, color: item.questionScore >= 80 ? '#004887' : '#FF4D4F' })
-          Text(`${item.questionScore}`)
-            .fontSize(14)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(item.questionScore >= 80 ? '#004887' : '#FF4D4F')
-        }
-      }
-      .width('100%')
-      .margin({ bottom: 16 })
-
-      // 4.2 题目文本
-      Text(item.questionText)
-        .fontSize(18)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(AppTheme.TextBlack)
-        .lineHeight(26)
-        .margin({ bottom: 20 })
-        .width('100%')
-
-      // 4.3 你的回答
-      Row({ space: 8 }) {
-        Image($r("app.media.Button"))
-          .width(16).height(16)
-        Text("你的回答")
-          .fontSize(14)
-          .fontWeight(FontWeight.Medium)
-          .fontColor('#333333')
-      }
-      .width('100%')
-      .margin({ bottom: 8 })
-
-      Text(item.answerText)
-        .fontSize(14)
-        .fontColor('#333333')
-        .backgroundColor('#F9F9F9')
-        .padding(16)
-        .borderRadius(16)
-        .lineHeight(22)
-        .width('100%')
-        .margin({ bottom: 24 })
-
-      // 4.4 评分指标进度条
-      Column({ space: 16 }) {
-        ForEach(item.metrics, (metric: MetricData) => {
-          Column() {
-            Text(metric.name)
-              .fontSize(12)
-              .fontColor('#666666')
-              .margin({ bottom: 6 })
-              .width('100%')
-            Row({ space: 12 }) {
-              Progress({ value: metric.score, total: 100, type: ProgressType.Linear })
-                .color(metric.color)
-                .backgroundColor('#EEEEEE')
-                .style({ strokeWidth: 6 })
-                .layoutWeight(1)
-              Text(metric.levelText)
-                .fontSize(12)
-                .fontColor('#333333')
-                .fontWeight(FontWeight.Medium)
-                .width(70)
-                .textAlign(TextAlign.End)
-            }
-            .width('100%')
-            .alignItems(VerticalAlign.Center)
-          }
-          .width('100%')
-        })
-      }
-      .width('100%')
-      .margin({ bottom: 24 })
-
-      // 4.5 综合评价
-      Row({ space: 8 }) {
-        Image($r("app.media.333"))
-          .width(16).height(16)
-        Text("综合评价")
-          .fontSize(14)
-          .fontWeight(FontWeight.Medium)
-          .fontColor('#004887')
-      }
-      .width('100%')
-      .margin({ bottom: 8 })
-
-      Text(item.evaluationText)
-        .fontSize(14)
-        .fontColor('#004887')
-        .backgroundColor('#F0F5FF')
-        .padding(16)
-        .borderRadius(16)
-        .lineHeight(22)
-        .width('100%')
-
-    }
-    .width('100%')
-    .backgroundColor(Color.White)
-    .borderRadius(24)
-    .padding(20)
-    .shadow({ radius: 20, color: 'rgba(0,0,0,0.03)', offsetY: 4 })
-  }
-
-  // ==========================================
-  // 5. 底部操作区 Builder
-  // ==========================================
-  @Builder
-  FooterView() {
-    Column() {
-      Button({ type: ButtonType.Normal, stateEffect: true }) {
-        Row({ space: 8 }) {
-          Image($r("app.media.Container"))
-            .width(20).height(20)
-          Text("导出面试报告")
-            .fontSize(16)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(AppTheme.TextBlack)
-        }
-        .justifyContent(FlexAlign.Center)
-        .width('100%')
-      }
-      .width('100%')
-      .height(56)
-      .backgroundColor(AppTheme.PrimaryYellow)
-      .borderRadius(28)
-      .margin({ bottom: 16 })
-      .onClick(() => {
-        console.log("导出报告");
-      })
-
-      Row() {
-        Text("面试表现，发给谁？")
-          .fontSize(12)
-          .fontColor('#999999')
-        Text("分享一下 →")
-          .fontSize(12)
-          .fontColor('#007DFF')
-          .fontWeight(FontWeight.Medium)
-          .margin({ left: 4 })
-          .onClick(() => {
-            console.log("分享");
-          })
-      }
-      .justifyContent(FlexAlign.Center)
-      .width('100%')
-      .margin({ bottom: 24 })
-    }
-    .width('100%')
-    .padding({ left: 16, right: 16, top: 24, bottom: 24 })
-  }
-
-  // ==========================================
-  // 6. 主体架构
-  // ==========================================
   build() {
     Column() {
+      this.HeaderView()
+
       WaterFlow() {
-        // 1. 头部区域
+        // 1. 大比分区域 (一起滚动)
         FlowItem() {
-          this.HeaderView()
+          Column() {
+            Row() {
+              Text("84")
+                .fontSize(60)
+                .fontWeight(FontWeight.Bold)
+                .fontColor(AppTheme.TextBlack)
+              Text("/100")
+                .fontSize(36)
+                .fontWeight(FontWeight.Medium)
+                .fontColor('#2D2F31')
+                .margin({ top: 12, left: 2 })
+            }
+            .width('100%')
+            .padding({ left: 16, right: 16, top: 16 })
+
+            Text("你的面试过程总共触及了 6 个关键问题，你的各项反馈有望于改进“面试”目标。")
+              .fontSize(18)
+              .fontColor('#5A5C5D')
+              .lineHeight(29.25)
+              .padding({ left: 16, right: 16, top: 8, bottom: 16 })
+              .width('100%')
+          }
+          .width('100%')
+          .backgroundColor('#F6F6F8')
         }
 
-        // 2. 动态渲染每一道题的复盘卡片
-        ForEach(this.reportData.questions, (item: QuestionDetail, index: number) => {
+        // 2. 题目卡片列表
+        ForEach(this.questions, (item: QuestionData) => {
           FlowItem() {
-            this.QuestionCard(item)
+            QuestionCardView({
+              item: item,
+              cardStyle: this.getCardStyle(item.score)
+            })
           }
-          .padding({ left: 16, right: 16, bottom: 16 })
         })
 
-        // 3. 底部操作区域
+        // 3. 🌟 底部操作按钮 (移入 FlowItem，不再固定底部，一起滚动)
         FlowItem() {
-          this.FooterView()
+          Column() {
+            Button({ type: ButtonType.Capsule }) {
+              Row({ space: 8 }) {
+                Image($r("app.media.1616"))
+                  .width(16).height(16)
+                Text("返回结果总览")
+                  .fontSize(20)
+                  .fontWeight(FontWeight.Bold)
+                  .fontColor("5B4B00")
+              }
+              .padding({ left: 24, right: 24 })
+            }
+            .width(220)
+            .height(44)
+            .backgroundColor(AppTheme.PrimaryYellow)
+            .margin({ bottom: 12, top: 16 })
+            .shadow({ radius: 10, color: 'rgba(255, 215, 0, 0.3)', offsetY: 4 })
+            .onClick(() => {
+              RouterModule.pop();
+            })
+
+            Row() {
+              Text("准备好再来一场了吗？").fontSize(12).fontColor('#999999')
+              Text("开始新一轮").fontSize(12).fontColor('#007DFF')
+            }
+          }
+          .width('100%')
+          .padding({ bottom: 48 }) // 给滚动留出底部安全区
+          .backgroundColor('#F6F6F8')
         }
       }
       .columnsTemplate("1fr")
+      .rowsGap(0)
+      .padding({ left: 0, right: 0 })
       .width('100%')
-      .height('100%')
       .layoutWeight(1)
+      .scrollBar(BarState.Off)
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#F7F8FA')
+    .backgroundColor('#F6F6F8')
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 }
