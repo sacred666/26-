@@ -448,6 +448,9 @@ export struct InterviewResultDetailPage {
             Row() {
               Text("准备好再来一场了吗？").fontSize(12).fontColor('#999999')
               Text("开始新一轮").fontSize(12).fontColor('#007DFF')
+                .onClick(() => {
+                  RouterModule.popToName("Page9");
+                })
             }
           }
           .width('100%')
