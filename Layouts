@@ -1,27 +1,121 @@
 import { Homepage } from './Homepage'
+import { interview } from './interview'
 
+// ==========================================
+// 1. 导航数据接口
+// ==========================================
+interface TabItem {
+  title: string;
+  defaultIcon: Resource;
+  activeIcon: Resource;
+}
+
+// ==========================================
+// 2. 主页面框架 Layouts
+// ==========================================
+@Entry
 @Component
 export struct Layouts {
   @State currentIndex: number = 0
 
+  // 数据源配置 (图片请确保存在)
+  private tabData: TabItem[] = [
+    { title: '首页', defaultIcon: $r("app.media.1"), activeIcon: $r("app.media.5") },
+    { title: '开始面试', defaultIcon: $r("app.media.2"), activeIcon: $r("app.media.6") },
+    { title: '成长', defaultIcon: $r("app.media.3"), activeIcon: $r("app.media.7") },
+    { title: '我的', defaultIcon: $r("app.media.4"), activeIcon: $r("app.media.8") }
+  ]
+
   build() {
-    Tabs({ barPosition: BarPosition.End, index: this.currentIndex }) {
-      TabContent() {
-Homepage()
-      }.tabBar("首页")
+    // 🌟 核心：Stack 对齐底部，实现死死固定
+    Stack({ alignContent: Alignment.Bottom }) {
 
-      TabContent() {
-        Text("岗位")
-      }.tabBar("面试")
+      // --- 底层：页面内容区 ---
+      Tabs({ barPosition: BarPosition.End, index: this.currentIndex }) {
 
-      TabContent() {
-        Text("我的")
-      }.tabBar("我的")
+        // 索引 0: 首页
+        TabContent() {
+          Homepage()
+        }
+
+        // 索引 1: 面试页
+        TabContent() {
+          interview()
+        }
+
+        // 索引 2: 成长页 (占位)
+        TabContent() {
+          Column() {
+            Text("成长页面 - 待开发")
+              .fontSize(20).fontColor('#999999')
+          }
+          .width('100%').height('100%').justifyContent(FlexAlign.Center)
+        }
+
+        // 索引 3: 我的页 (占位)
+        TabContent() {
+          Column() {
+            Text("我的页面 - 待开发")
+              .fontSize(20).fontColor('#999999')
+          }
+          .width('100%').height('100%').justifyContent(FlexAlign.Center)
+        }
+      }
+      .barHeight(0) // 隐藏原生 TabBar
+      .scrollable(false) // 禁用左右滑动切换
+      .onChange((index: number) => {
+        this.currentIndex = index
+      })
+
+      // --- 顶层：🌟 紧贴底部的自定义悬浮全圆角 TabBar ---
+      Column() {
+        Row({ space: 5 }) {
+          ForEach(this.tabData, (item: TabItem, index: number) => {
+
+            // 单个 Tab
+            Column({ space: 3 }) {
+              Image(this.currentIndex === index ? item.activeIcon : item.defaultIcon)
+                .width(21)
+                .height(18)
+                .objectFit(ImageFit.Contain)
+
+              Text(item.title)
+                .fontSize(9)
+                .fontWeight(FontWeight.Regular)
+                .fontColor(this.currentIndex === index ? Color.White : '#1A1A1A')
+                // 处理极端窄屏幕情况下的安全降级
+                .maxLines(1)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+            }
+            .layoutWeight(1) // 自动等分布局，防止文字裁剪
+            .height(52)
+            .justifyContent(FlexAlign.Center)
+            .backgroundColor(this.currentIndex === index ? '#FFD709' : '#FFFFFF')
+            .borderRadius(100)
+            .animation({ duration: 300, curve: Curve.EaseOut })
+            .onClick(() => {
+              this.currentIndex = index
+            })
+
+          })
+        }
+        .width('100%')
+        .height(60)
+        .padding({ left: 6, right: 6, top: 4, bottom: 4 })
+        .backgroundColor('#F3F4F8')
+        .borderRadius({ topLeft: 34, topRight: 34, bottomLeft: 34, bottomRight: 34 })
+        .shadow({ radius: 16, color: 'rgba(0,0,0,0.05)', offsetY: -4 })
+      }
+      .width('100%')
+      // 🌟 核心修改：仅仅把 bottom 改为了 0，彻底贴紧物理屏幕最下方，其他不变
+      .padding({ left: 28, right: 28, bottom: 0 })
+      .margin({ bottom: 0 })
+
     }
     .width('100%')
     .height('100%')
-    .onChange((index: number) => {
-      this.currentIndex = index
-    })
+    .backgroundColor(Color.White)
+    // 穿透系统安全区，配合 bottom: 0 做到绝对触底
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.BOTTOM])
   }
 }
